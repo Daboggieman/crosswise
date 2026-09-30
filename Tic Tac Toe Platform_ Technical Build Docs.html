@@ -1,0 +1,982 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>Tic Tac Toe Platform: Technical Build Docs</h1>
+<p>Version 1.0. This is a specification and build plan only. It contains no implementation code, so every line of the actual system is yours to write.</p>
+<hr>
+<h2>0. How to Use These Docs</h2>
+<p><strong>Ground rules (your own)</strong></p>
+<ul>
+<li>No AI-written code. Books, official docs, and web searches are allowed for small problems.</li>
+<li>Write the code, tests, and migrations yourself. Use this document as the blueprint.</li>
+</ul>
+<p><strong>Verification checkpoints</strong>
+Every build phase in Section 14 starts with a <strong>Verify first</strong> block: a short list of things to confirm are already true before you start that phase's tasks. Do not skip it. If a check fails, fix the previous phase first.</p>
+<p><strong>Decisions</strong>
+Items marked <strong>[Decision]</strong> are recommendations. Change them if you have a reason, then update this document so it stays accurate.</p>
+<hr>
+<h2>1. Scope</h2>
+<h3>1.1 Goals</h3>
+<ol>
+<li>A correct, well-tested tic tac toe engine in Python.</li>
+<li>A backend that exposes the engine over an API and persists everything.</li>
+<li>A frontend where a person can play a game.</li>
+<li>A database that stores games, moves, and actions.</li>
+<li>Semantic search over saved games using your own search engine.</li>
+<li>Replay of any saved game, including games found through search.</li>
+</ol>
+<h3>1.2 Non-goals for v1</h3>
+<ul>
+<li>Accounts with passwords, OAuth, or payments.</li>
+<li>Boards larger than 3x3 or variants (Ultimate, Misere).</li>
+<li>Mobile apps.</li>
+<li>Horizontal scaling.</li>
+</ul>
+<h3>1.3 Play modes</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+<th>Phase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hotseat</td>
+<td>Two humans, one browser</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Vs bot</td>
+<td>Human against a computer opponent</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Online 1v1</td>
+<td>Two browsers, real time</td>
+<td>9 (stretch)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>2. Architecture</h2>
+<h3>2.1 Layers</h3>
+<pre><code> Frontend (browser)
+     |  HTTP/JSON (later: WebSocket)
+ API layer (routing, validation, serialization)
+     |
+ Service layer (game flow, search orchestration, replay assembly)
+     |             |
+ Engine        Repository layer          Search adapter
+ (pure logic)  (all SQL lives here)      (your semantic engine)
+                   |
+               Database
+</code></pre>
+<h3>2.2 Rules that keep it clean</h3>
+<ol>
+<li><strong>The engine is pure.</strong> No database, no HTTP, no clock, no randomness inside the rules. Same input, same output, always.</li>
+<li><strong>Only the repository layer talks to the database.</strong> Nothing else imports the database driver.</li>
+<li><strong>Only the search adapter talks to your search engine.</strong> If its interface changes, one module changes.</li>
+<li><strong>The API layer holds no game rules.</strong> It validates shape, calls a service, and formats the result.</li>
+<li><strong>The move log is the source of truth.</strong> The board you show is always derivable by replaying stored moves.</li>
+</ol>
+<hr>
+<h2>3. Tech Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Choice</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Language</td>
+<td>Python 3.12+</td>
+<td></td>
+</tr>
+<tr>
+<td>Web framework</td>
+<td>FastAPI <strong>[Decision]</strong></td>
+<td>Alternative: Flask. FastAPI gives typed request validation and auto-generated API docs.</td>
+</tr>
+<tr>
+<td>Server</td>
+<td>Uvicorn</td>
+<td></td>
+</tr>
+<tr>
+<td>Database</td>
+<td>SQLite for dev, PostgreSQL later <strong>[Decision]</strong></td>
+<td>Keep SQL portable so the swap is a config change.</td>
+</tr>
+<tr>
+<td>DB access</td>
+<td>Plain SQL through the standard driver, or SQLAlchemy Core <strong>[Decision]</strong></td>
+<td>Plain SQL teaches the most and fits the no-AI spirit.</td>
+</tr>
+<tr>
+<td>Migrations</td>
+<td>Numbered SQL files applied in order</td>
+<td>Simple, transparent. Alembic if you move to SQLAlchemy.</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>Plain HTML, CSS, and JavaScript <strong>[Decision]</strong></td>
+<td>No framework needed for this size. Add one only if state gets painful.</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>pytest</td>
+<td></td>
+</tr>
+<tr>
+<td>Config</td>
+<td>Environment variables</td>
+<td>One settings module reads them.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>4. Repository Layout</h2>
+<pre><code>tictactoe/
+  docs/                 this document, decisions log
+  backend/
+    app/
+      main              app creation and wiring
+      config            settings from environment
+      api/              routers, request/response schemas, error handlers
+      services/         game_service, search_service, replay_service
+      engine/           board, rules, notation, bot
+      repositories/     games, moves, actions, search_state
+      search/           adapter to your semantic search engine
+      db/               connection handling, migration runner
+    migrations/         0001_..., 0002_... numbered SQL files
+    tests/
+      unit/             engine and pure functions
+      integration/      repository and API against a test database
+  frontend/
+    index, play, history, replay pages
+    js/                 api client, board view, replay controller, search view
+    css/
+  scripts/              seed data, reindex, integrity check
+</code></pre>
+<hr>
+<h2>5. Engine Specification</h2>
+<h3>5.1 Board representation</h3>
+<ul>
+<li>Nine cells, indexed 0 to 8, row-major:</li>
+</ul>
+<pre><code> 0 | 1 | 2
+---+---+---
+ 3 | 4 | 5
+---+---+---
+ 6 | 7 | 8
+</code></pre>
+<ul>
+<li>Each cell is empty, X, or O.</li>
+<li>X always moves first.</li>
+</ul>
+<h3>5.2 Game state</h3>
+<p>A state consists of:</p>
+<ul>
+<li>the board (nine cells)</li>
+<li>whose turn it is</li>
+<li>status: in progress, won, or drawn</li>
+<li>winner (X, O, or none)</li>
+<li>the winning line, if any (useful for highlighting in the UI and for search summaries)</li>
+</ul>
+<p>States are <strong>immutable</strong>. Applying a move returns a new state and never modifies the old one. This makes replay and testing trivial.</p>
+<h3>5.3 Winning lines</h3>
+<p>Eight lines: three rows, three columns, two diagonals. Define them once as constants.</p>
+<h3>5.4 Operations the engine must provide</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New game</td>
+<td>Returns an empty board, X to move, in progress</td>
+</tr>
+<tr>
+<td>Legal moves</td>
+<td>Returns the empty cells, or nothing if the game is over</td>
+</tr>
+<tr>
+<td>Apply move</td>
+<td>Takes a state, a player, and a cell. Returns the new state, or raises a specific error</td>
+</tr>
+<tr>
+<td>Evaluate</td>
+<td>Determines won, drawn, or in progress for a given board</td>
+</tr>
+<tr>
+<td>Replay</td>
+<td>Folds a list of cells over a new game and returns the final state</td>
+</tr>
+</tbody>
+</table>
+<h3>5.5 Error types</h3>
+<p>Define distinct errors so the API can map them to responses:</p>
+<ul>
+<li>cell out of range</li>
+<li>cell already occupied</li>
+<li>not this player's turn</li>
+<li>game already finished</li>
+</ul>
+<h3>5.6 Invariants (write these as tests)</h3>
+<ol>
+<li>Count of X equals count of O, or exceeds it by exactly one.</li>
+<li>Once won or drawn, no further move is accepted.</li>
+<li>A win is detected on the exact move that completes a line, not one move late.</li>
+<li>A full board with no line is a draw, and a full board where the last move completes a line is a win, not a draw.</li>
+<li>Replaying a game's move list always reproduces its stored final result.</li>
+</ol>
+<h3>5.7 Notation</h3>
+<p>Store moves as the cell index (0 to 8). For human-readable output define a coordinate form (for example row and column, or A1 to C3) in one place only, and convert at the edges.</p>
+<h3>5.8 Bot (Phase 6)</h3>
+<ul>
+<li><strong>Easy:</strong> random legal move.</li>
+<li><strong>Medium:</strong> win if possible, else block, else random.</li>
+<li><strong>Hard:</strong> exhaustive game-tree search (minimax). The full tree is small, so it is solvable exactly. Add pruning as an optional optimization exercise.</li>
+<li>The bot lives in the engine package, receives a state, and returns a cell. It must be deterministic for a given seed so bot games are reproducible in tests.</li>
+</ul>
+<hr>
+<h2>6. Database Design</h2>
+<h3>6.1 Tables</h3>
+<p><strong>players</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>integer or UUID, primary key</td>
+<td></td>
+</tr>
+<tr>
+<td>display_name</td>
+<td>text, not null</td>
+<td></td>
+</tr>
+<tr>
+<td>kind</td>
+<td>text, not null</td>
+<td>human or bot</td>
+</tr>
+<tr>
+<td>created_at</td>
+<td>timestamp, not null</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Include a fixed set of bot players (easy, medium, hard) created by a migration.</p>
+<p><strong>games</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>UUID, primary key</td>
+<td></td>
+</tr>
+<tr>
+<td>mode</td>
+<td>text, not null</td>
+<td>hotseat, vs_bot, online</td>
+</tr>
+<tr>
+<td>status</td>
+<td>text, not null</td>
+<td>in_progress, finished, abandoned</td>
+</tr>
+<tr>
+<td>player_x_id</td>
+<td>foreign key to players</td>
+<td></td>
+</tr>
+<tr>
+<td>player_o_id</td>
+<td>foreign key to players</td>
+<td></td>
+</tr>
+<tr>
+<td>winner</td>
+<td>text, nullable</td>
+<td>X, O, or null for draw or unfinished</td>
+</tr>
+<tr>
+<td>result_reason</td>
+<td>text, nullable</td>
+<td>three_in_row, draw, resignation, timeout, agreement</td>
+</tr>
+<tr>
+<td>move_count</td>
+<td>integer, not null, default 0</td>
+<td>Denormalized for fast listing</td>
+</tr>
+<tr>
+<td>summary_text</td>
+<td>text, nullable</td>
+<td>Generated description used for search (see Section 9)</td>
+</tr>
+<tr>
+<td>engine_version</td>
+<td>text, not null</td>
+<td>So old games stay replayable if rules ever change</td>
+</tr>
+<tr>
+<td>started_at</td>
+<td>timestamp, not null</td>
+<td></td>
+</tr>
+<tr>
+<td>ended_at</td>
+<td>timestamp, nullable</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>moves</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>integer, primary key</td>
+<td></td>
+</tr>
+<tr>
+<td>game_id</td>
+<td>foreign key to games, on delete cascade</td>
+<td></td>
+</tr>
+<tr>
+<td>ply</td>
+<td>integer, not null</td>
+<td>1-based move number</td>
+</tr>
+<tr>
+<td>mark</td>
+<td>text, not null</td>
+<td>X or O</td>
+</tr>
+<tr>
+<td>cell</td>
+<td>integer, not null</td>
+<td>0 to 8</td>
+</tr>
+<tr>
+<td>played_at</td>
+<td>timestamp, not null</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Constraints:</p>
+<ul>
+<li>unique on (game_id, ply)</li>
+<li>unique on (game_id, cell), because a cell can only be played once per game</li>
+<li>check that cell is between 0 and 8</li>
+<li>check that mark is X or O</li>
+</ul>
+<p><strong>actions</strong>
+Non-move events that still matter for history and replay.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>integer, primary key</td>
+<td></td>
+</tr>
+<tr>
+<td>game_id</td>
+<td>foreign key to games, on delete cascade</td>
+<td></td>
+</tr>
+<tr>
+<td>seq</td>
+<td>integer, not null</td>
+<td>Ordering within the game across moves and actions</td>
+</tr>
+<tr>
+<td>type</td>
+<td>text, not null</td>
+<td>resign, offer_draw, accept_draw, decline_draw, timeout, disconnect, reconnect</td>
+</tr>
+<tr>
+<td>actor</td>
+<td>text, not null</td>
+<td>X, O, or system</td>
+</tr>
+<tr>
+<td>payload</td>
+<td>text (JSON), nullable</td>
+<td>Extra detail, such as time remaining</td>
+</tr>
+<tr>
+<td>created_at</td>
+<td>timestamp, not null</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>search_index_state</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>game_id</td>
+<td>primary key, foreign key to games</td>
+<td></td>
+</tr>
+<tr>
+<td>content_hash</td>
+<td>text</td>
+<td>Hash of the indexed text, to detect changes</td>
+</tr>
+<tr>
+<td>status</td>
+<td>text</td>
+<td>pending, indexed, failed</td>
+</tr>
+<tr>
+<td>last_error</td>
+<td>text, nullable</td>
+<td></td>
+</tr>
+<tr>
+<td>indexed_at</td>
+<td>timestamp, nullable</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3>6.2 Ordering across moves and actions</h3>
+<p>A replay needs one timeline. Two options:</p>
+<ul>
+<li><strong>Option A [Decision]:</strong> give moves and actions a shared <code>seq</code> per game. Add <code>seq</code> to moves too, and keep <code>ply</code> for the pure move count.</li>
+<li><strong>Option B:</strong> merge by timestamp at read time. Simpler schema, but ties and clock skew are a risk.</li>
+</ul>
+<p>Option A is safer. If you choose it, add <code>seq</code> to the moves table with a unique constraint on (game_id, seq), and make sure seq is allocated inside the same transaction as the insert.</p>
+<h3>6.3 Indexes</h3>
+<ul>
+<li>games: (status), (started_at descending), (winner)</li>
+<li>moves: covered by the unique constraints</li>
+<li>actions: (game_id, seq)</li>
+<li>search_index_state: (status)</li>
+</ul>
+<h3>6.4 Transactions</h3>
+<p>Playing a move must, in one transaction: verify the game is in progress, verify turn order, insert the move, update move_count, and if the move ends the game, update status, winner, result_reason, and ended_at. Either all of it commits or none of it does.</p>
+<h3>6.5 Concurrency</h3>
+<p>Two requests could try to play the same ply at once. The unique constraint on (game_id, ply) is your safety net. Catch that constraint violation and return a conflict error rather than a server error.</p>
+<h3>6.6 Migrations</h3>
+<ul>
+<li>Numbered files applied in order.</li>
+<li>A table records which migrations have run.</li>
+<li>Never edit an applied migration. Add a new one.</li>
+</ul>
+<hr>
+<h2>7. API Specification</h2>
+<p>Base path: <code>/api/v1</code>. All bodies are JSON. Timestamps are ISO 8601 in UTC.</p>
+<h3>7.1 Endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td>/health</td>
+<td>Liveness check</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/games</td>
+<td>Create a game</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/games</td>
+<td>List games with filters and pagination</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/games/{id}</td>
+<td>Get one game with its current board</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/games/{id}/moves</td>
+<td>Play a move</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/games/{id}/actions</td>
+<td>Resign, offer or answer a draw, and so on</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/games/{id}/replay</td>
+<td>Get the ordered timeline for replay</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/search</td>
+<td>Semantic search over games</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/admin/reindex</td>
+<td>Rebuild search index (protect or disable outside dev)</td>
+</tr>
+</tbody>
+</table>
+<h3>7.2 Request and response shapes</h3>
+<p><strong>Create game</strong></p>
+<ul>
+<li>Request: mode, player X, player O (or bot difficulty).</li>
+<li>Response: game id, mode, status, empty board, next player.</li>
+</ul>
+<p><strong>Play move</strong></p>
+<ul>
+<li>Request: mark, cell.</li>
+<li>Response: updated board, next player, status, winner, winning line, move number. For vs-bot games, include the bot's reply move in the same response.</li>
+</ul>
+<p><strong>Get game</strong></p>
+<ul>
+<li>Response: game metadata plus a board array of nine values, the list of moves, and the list of actions.</li>
+</ul>
+<p><strong>List games</strong></p>
+<ul>
+<li>Query params: status, winner, mode, player, date range, page, page size, sort.</li>
+<li>Response: items, total, page info.</li>
+</ul>
+<p><strong>Replay</strong></p>
+<ul>
+<li>Response: game metadata and one ordered <code>timeline</code> array. Each entry has seq, kind (move or action), and its details. Include the final result for verification.</li>
+</ul>
+<p><strong>Search</strong></p>
+<ul>
+<li>Request: query text, optional filters (same as list), limit, minimum score.</li>
+<li>Response: ordered results, each with game id, relevance score, the matched summary text, and enough metadata to show a result card. Include the game id so the UI can link straight to replay.</li>
+</ul>
+<h3>7.3 Error format</h3>
+<p>One consistent shape for every error: a machine-readable code, a human message, and optional details.</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Status</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Malformed body or out-of-range cell</td>
+<td>422</td>
+<td>validation_error</td>
+</tr>
+<tr>
+<td>Game not found</td>
+<td>404</td>
+<td>game_not_found</td>
+</tr>
+<tr>
+<td>Cell occupied, not your turn, game finished, stale ply</td>
+<td>409</td>
+<td>illegal_move or conflict</td>
+</tr>
+<tr>
+<td>Search engine unreachable</td>
+<td>503</td>
+<td>search_unavailable</td>
+</tr>
+<tr>
+<td>Anything unexpected</td>
+<td>500</td>
+<td>internal_error (never leak internals)</td>
+</tr>
+</tbody>
+</table>
+<h3>7.4 Idempotency</h3>
+<p>Include a client-supplied ply or move number in the play-move request. If the same request is retried, the server can detect it and return the existing result instead of double-applying.</p>
+<hr>
+<h2>8. Actions Model</h2>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>resign</td>
+<td>Game finishes, opponent wins, reason is resignation</td>
+</tr>
+<tr>
+<td>offer_draw</td>
+<td>Recorded, waits for a response</td>
+</tr>
+<tr>
+<td>accept_draw</td>
+<td>Game finishes as draw, reason is agreement</td>
+</tr>
+<tr>
+<td>decline_draw</td>
+<td>Recorded, game continues</td>
+</tr>
+<tr>
+<td>timeout</td>
+<td>System-generated, game finishes, reason is timeout</td>
+</tr>
+<tr>
+<td>disconnect and reconnect</td>
+<td>Recorded for online mode only</td>
+</tr>
+</tbody>
+</table>
+<p>Rules:</p>
+<ul>
+<li>Every action is validated against current game state (you cannot accept a draw nobody offered).</li>
+<li>Every action gets a seq in the shared timeline.</li>
+<li>Actions that end a game go through the same transactional path as a winning move.</li>
+</ul>
+<hr>
+<h2>9. Semantic Search Integration</h2>
+<p>Your search engine is a black box to this project except for the contract below. <strong>Confirm the real contract before Phase 7</strong> (see open questions, Section 16).</p>
+<h3>9.1 What gets indexed</h3>
+<p>Raw move lists mean little to a semantic engine. Index a <strong>generated description</strong> for each finished game, stored in <code>games.summary_text</code>. Generate it with a deterministic template, not a model.</p>
+<p>Facts a description can include:</p>
+<ul>
+<li>who won or that it was a draw, and how many moves it took</li>
+<li>which line won (top row, main diagonal, and so on)</li>
+<li>who opened and where (center, corner, edge)</li>
+<li>notable patterns: won by a fork, opponent failed to block, early win, full-board draw</li>
+<li>mode and bot difficulty</li>
+<li>date</li>
+</ul>
+<p>Example description (illustrative only): &quot;X won in 5 moves along the main diagonal. X opened in the center against the hard bot. The bot's second move missed a block.&quot;</p>
+<p>Detecting patterns like a missed block means the engine or a helper needs an analysis function that walks the move list. That is a good self-contained exercise.</p>
+<h3>9.2 Indexing pipeline</h3>
+<ol>
+<li>When a game finishes, insert or update its <code>search_index_state</code> as pending.</li>
+<li>A background step (a simple worker, or a post-commit call at first) builds the description, saves it, computes a content hash, and sends it to the search engine.</li>
+<li>On success mark indexed. On failure mark failed and store the error.</li>
+<li>A script retries failed and pending rows.</li>
+<li>A full reindex script rebuilds everything, so you can change the description template freely.</li>
+</ol>
+<p><strong>Important:</strong> never let a search outage block or fail a game. Indexing is best-effort and retryable.</p>
+<h3>9.3 Query flow</h3>
+<ol>
+<li>Client sends a text query and optional filters.</li>
+<li>Search service calls the adapter with the query.</li>
+<li>Adapter returns game ids with scores.</li>
+<li>Search service loads those games from the database (one query, not one per result), applies any structured filters, and preserves score order.</li>
+<li>Response combines the score, the description, and game metadata.</li>
+</ol>
+<h3>9.4 Adapter contract (draft, adjust to your engine)</h3>
+<ul>
+<li><strong>index(document id, text, metadata)</strong>: add or update.</li>
+<li><strong>delete(document id)</strong>.</li>
+<li><strong>search(query, limit, filters)</strong>: returns a list of (document id, score).</li>
+<li><strong>health()</strong>: reachable or not.</li>
+</ul>
+<p>Keep this as a small interface with your real client behind it, plus a fake in-memory implementation for tests.</p>
+<h3>9.5 Hybrid filtering</h3>
+<p>Decide early whether filters (winner, mode, date) run inside your search engine or after retrieval in SQL. Filtering after retrieval is simpler but can return fewer results than the limit. Overfetch (for example ask for 3x the limit) to compensate, or push filters into the engine.</p>
+<hr>
+<h2>10. Replay</h2>
+<h3>10.1 Data source</h3>
+<p>The <code>replay</code> endpoint returns the ordered timeline from Section 6.2. The frontend never calls the engine. It receives cells and marks and draws them.</p>
+<h3>10.2 Server-side verification</h3>
+<p>When assembling a replay, the replay service folds the moves through the engine and compares the outcome to the stored winner and result. If they differ, flag the game as inconsistent in the response and in logs. This catches data corruption and engine changes.</p>
+<h3>10.3 Frontend replay controller</h3>
+<p>State: the timeline, a current step index, playing or paused, speed.</p>
+<p>Controls: play, pause, step forward, step back, jump to start, jump to end, seek to a specific step, speed selector.</p>
+<p>Behavior:</p>
+<ul>
+<li>The board at step N is computed by applying the first N moves. Do this from scratch on each seek, so seeking is always correct.</li>
+<li>Actions appear as annotations on the timeline (for example &quot;X offered a draw&quot;).</li>
+<li>The last step shows the result and highlights the winning line.</li>
+<li>Optional: keyboard shortcuts (left, right, space).</li>
+</ul>
+<h3>10.4 Entry points</h3>
+<ul>
+<li>From the history list.</li>
+<li>From a search result.</li>
+<li>Via a shareable URL that contains only the game id.</li>
+</ul>
+<hr>
+<h2>11. Frontend Specification</h2>
+<h3>11.1 Pages</h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Play</td>
+<td>Mode selection, board, turn indicator, status, resign and draw buttons, new game</td>
+</tr>
+<tr>
+<td>History</td>
+<td>Filterable, paginated list of past games</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>Text box, filters, result cards with a Replay button</td>
+</tr>
+<tr>
+<td>Replay</td>
+<td>Board, timeline, controls, game metadata</td>
+</tr>
+</tbody>
+</table>
+<h3>11.2 Modules (plain JavaScript)</h3>
+<ul>
+<li><strong>API client:</strong> one place for all fetch calls and error handling.</li>
+<li><strong>Board view:</strong> renders nine cells from an array, emits click events, highlights a winning line.</li>
+<li><strong>Game controller:</strong> holds current game state, calls the API, updates the view.</li>
+<li><strong>Replay controller:</strong> Section 10.3.</li>
+<li><strong>Search view:</strong> query, results, empty and error states.</li>
+</ul>
+<h3>11.3 UX requirements</h3>
+<ul>
+<li>Disable the board when it is not the player's turn or the game is over.</li>
+<li>Show clear messages for illegal moves rather than failing silently.</li>
+<li>Show loading and error states for every network call.</li>
+<li>Keyboard accessible cells with proper labels.</li>
+<li>Works at phone width.</li>
+</ul>
+<h3>11.4 Rule</h3>
+<p>The frontend may pre-check obvious things for responsiveness, but the server is the only authority on legality.</p>
+<hr>
+<h2>12. Testing Strategy</h2>
+<h3>12.1 Engine unit tests (most important)</h3>
+<ul>
+<li>Every winning line, for both players.</li>
+<li>Draw detection on a full board.</li>
+<li>A win on the ninth move counts as a win.</li>
+<li>Every error type.</li>
+<li>Immutability: the old state is unchanged after applying a move.</li>
+<li>Exhaustive check: generate every reachable game and assert all invariants hold. The full space is small enough to walk completely.</li>
+<li>Bot: hard bot never loses against any opponent line of play.</li>
+</ul>
+<h3>12.2 Repository tests</h3>
+<ul>
+<li>Run against a real temporary database.</li>
+<li>Constraint tests: duplicate ply, duplicate cell, out-of-range cell, bad mark.</li>
+<li>Transaction test: a failure midway leaves no partial data.</li>
+</ul>
+<h3>12.3 API tests</h3>
+<ul>
+<li>Full game to a win, to a draw, to a resignation.</li>
+<li>Every error path and its status code.</li>
+<li>Retried request does not double-apply.</li>
+<li>Pagination and filters.</li>
+</ul>
+<h3>12.4 Search tests</h3>
+<ul>
+<li>Use the fake adapter for logic.</li>
+<li>A small number of tests against the real engine, marked separately.</li>
+<li>Outage test: search down, games still play and finish.</li>
+</ul>
+<h3>12.5 Replay tests</h3>
+<ul>
+<li>Replay of every stored game reproduces its result.</li>
+<li>Corrupted data is flagged.</li>
+</ul>
+<h3>12.6 Target</h3>
+<p>High coverage on engine and services. Do not chase a number on the API glue.</p>
+<hr>
+<h2>13. Non-Functional Requirements</h2>
+<ul>
+<li><strong>Config:</strong> database location, search engine address, log level, and allowed origins all come from environment variables, with safe defaults for development.</li>
+<li><strong>Logging:</strong> structured, one line per request, with a request id. Log every rejected move at info level.</li>
+<li><strong>Validation:</strong> validate at the API boundary and again in the engine. Never trust the client.</li>
+<li><strong>Security basics:</strong> parameterized queries only, restrict CORS, protect admin routes, cap request size, cap page size.</li>
+<li><strong>Performance:</strong> listing must not run one query per row. Add the indexes from Section 6.3.</li>
+<li><strong>Time:</strong> always store UTC. Pass the clock in from outside so time is testable.</li>
+<li><strong>Observability:</strong> the health endpoint should also report database and search engine reachability.</li>
+</ul>
+<hr>
+<h2>14. Build Phases</h2>
+<p>Each phase has: <strong>Verify first</strong> (confirm the previous phase truly works), <strong>Tasks</strong>, and <strong>Done when</strong>.</p>
+<h3>Phase 0: Setup</h3>
+<p><strong>Verify first:</strong> nothing yet. Confirm you have Python 3.12+ and Git.</p>
+<p>Tasks</p>
+<ul>
+<li>Create the repo and layout from Section 4.</li>
+<li>Set up a virtual environment and dependency file.</li>
+<li>Configure pytest with one trivial passing test.</li>
+<li>Set up formatting and linting.</li>
+</ul>
+<p>Done when: the test suite runs from a clean checkout in one command.</p>
+<h3>Phase 1: Engine</h3>
+<p><strong>Verify first:</strong> the test runner works and the package imports.</p>
+<p>Tasks</p>
+<ul>
+<li>Board, state, winning lines, apply move, evaluate, replay.</li>
+<li>Error types.</li>
+<li>All invariants from Section 5.6 as tests.</li>
+<li>Exhaustive game-space test.</li>
+</ul>
+<p>Done when: engine tests pass and you can play a complete game in a Python shell.</p>
+<h3>Phase 2: Database and repositories</h3>
+<p><strong>Verify first:</strong> run the engine suite again. Confirm you can create a game in a shell with no database involved.</p>
+<p>Tasks</p>
+<ul>
+<li>Migration runner and migrations 0001 onward for all tables.</li>
+<li>Repositories for games, moves, actions.</li>
+<li>Transactional play-move operation.</li>
+<li>Constraint and transaction tests.</li>
+</ul>
+<p>Done when: you can play a full game in a shell and the rows appear correctly in the database, and the replayed result matches.</p>
+<h3>Phase 3: API and hotseat frontend</h3>
+<p><strong>Verify first:</strong> confirm from a shell that a game persists, reloads, and replays to the same result.</p>
+<p>Tasks</p>
+<ul>
+<li>App wiring, config, error handlers.</li>
+<li>Create, get, list, move, action endpoints.</li>
+<li>Play page with hotseat mode.</li>
+<li>API tests.</li>
+</ul>
+<p>Done when: two people can finish a game in the browser and it shows in the database.</p>
+<h3>Phase 4: History and replay</h3>
+<p><strong>Verify first:</strong> confirm that a finished game exists in the database and the get-game endpoint returns its moves in order.</p>
+<p>Tasks</p>
+<ul>
+<li>Replay endpoint with server-side verification.</li>
+<li>History page with filters and pagination.</li>
+<li>Replay page and controller.</li>
+</ul>
+<p>Done when: every stored game replays correctly, and seeking to any step shows the right board.</p>
+<h3>Phase 5: Actions</h3>
+<p><strong>Verify first:</strong> confirm the shared timeline ordering works (moves and actions interleave correctly in a replay).</p>
+<p>Tasks</p>
+<ul>
+<li>Resign, draw offer flow, timeout.</li>
+<li>Show actions on the replay timeline.</li>
+</ul>
+<p>Done when: each ending type produces the correct stored result and replays correctly.</p>
+<h3>Phase 6: Bot</h3>
+<p><strong>Verify first:</strong> confirm a full human game still works end to end after Phase 5.</p>
+<p>Tasks</p>
+<ul>
+<li>Easy, medium, hard bots.</li>
+<li>Vs-bot mode returning the bot reply.</li>
+<li>Seeded determinism.</li>
+</ul>
+<p>Done when: hard bot never loses in tests, and bot games are stored and replayable like any other.</p>
+<h3>Phase 7: Search</h3>
+<p><strong>Verify first:</strong> confirm your search engine is running and you have its real interface in hand. Confirm at least several dozen finished games exist (seed some with a script driven by the bot).</p>
+<p>Tasks</p>
+<ul>
+<li>Description generator and pattern analysis.</li>
+<li>Adapter, fake adapter, indexing state and retry script.</li>
+<li>Search endpoint and search page.</li>
+<li>Reindex script.</li>
+</ul>
+<p>Done when: a natural-language query returns sensible games and each result opens its replay.</p>
+<h3>Phase 8: Hardening</h3>
+<p><strong>Verify first:</strong> run the full test suite and confirm it is green.</p>
+<p>Tasks</p>
+<ul>
+<li>Integrity-check script that replays every game and reports mismatches.</li>
+<li>Logging, config review, security review.</li>
+<li>Concurrency test for duplicate ply.</li>
+<li>Documentation of how to run everything.</li>
+</ul>
+<p>Done when: a new machine can run the project from the README alone.</p>
+<h3>Phase 9 (stretch): Online 1v1</h3>
+<p><strong>Verify first:</strong> confirm vs-bot and hotseat still work.</p>
+<p>Tasks</p>
+<ul>
+<li>WebSocket channel per game.</li>
+<li>Server pushes moves and actions to both players.</li>
+<li>Player identity per connection.</li>
+<li>Disconnect and reconnect handling, timeouts.</li>
+</ul>
+<p>Done when: two browsers can finish a game in real time.</p>
+<hr>
+<h2>15. Reading List</h2>
+<p>Use these when stuck, in the pre-AI spirit.</p>
+<ul>
+<li>Python official documentation (standard library, typing, sqlite3, unittest).</li>
+<li>FastAPI official documentation, or Flask's if you go that route.</li>
+<li>SQLite documentation on constraints, transactions, and indexes.</li>
+<li>MDN Web Docs for DOM, fetch, and accessibility.</li>
+<li><em>Fluent Python</em> by Luciano Ramalho, for idiomatic Python.</li>
+<li><em>Architecture Patterns with Python</em> by Percival and Gregory, for the repository and service layer ideas used here.</li>
+<li><em>Designing Data-Intensive Applications</em> by Martin Kleppmann, chapters on transactions and data models.</li>
+<li><em>SQL Antipatterns</em> by Bill Karwin.</li>
+<li>Any introductory chapter on game-tree search and minimax, for the hard bot.</li>
+</ul>
+<hr>
+<h2>16. Open Questions</h2>
+<p>Answer these and record the answers in your decisions log.</p>
+<ol>
+<li>What is your search engine's real interface (HTTP, Python library, CLI)? What does it return, and does it support metadata filters?</li>
+<li>Should search index only finished games, or in-progress too?</li>
+<li>Do you want player accounts in v1, or only named players and bots?</li>
+<li>SQLite only, or PostgreSQL from the start?</li>
+<li>Is online 1v1 a real goal or just a maybe?</li>
+<li>Should replays be shareable publicly, or private to a player?</li>
+</ol>
+<hr>
+<h2>17. Definition of Done (whole project)</h2>
+<ul>
+<li>All engine invariants and exhaustive tests pass.</li>
+<li>Every stored game replays to its recorded result.</li>
+<li>A game can be played in hotseat and against each bot.</li>
+<li>A natural-language search returns relevant games, and each result opens a working replay.</li>
+<li>Search outage does not break gameplay.</li>
+<li>The project runs from a fresh checkout using only the README.</li>
+</ul>
+
+</body></html>
