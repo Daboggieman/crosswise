@@ -12,7 +12,7 @@ class State:
     turn: str = mark_X
     winner: str | None = None
     line: tuple[int, int, int] | None = None
-    status: str = "playing"
+    status: str = "in_progress"
 
 
 winning_triples = (
