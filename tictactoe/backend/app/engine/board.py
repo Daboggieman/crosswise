@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-empty, mark_X, mark_O = "-", "X", "O"
+empty, mark_X, mark_O, status_in_progress, status_won, status_drawn = "-", "X", "O", "in_progress", "won", "drawn"
 
 EMPTY_BOARD = (empty,) * 9
 
@@ -12,7 +12,7 @@ class State:
     turn: str = mark_X
     winner: str | None = None
     line: tuple[int, int, int] | None = None
-    status: str = "in_progress"
+    status: str = status_in_progress
 
 
 winning_triples = (
