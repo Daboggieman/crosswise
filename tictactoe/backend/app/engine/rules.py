@@ -88,5 +88,5 @@ def replay(moves:list[int]):
     if moves is None:
         moves = []
     for cell in moves:
-        state = apply_move(state, cell)
+        state = apply_move(state, state.turn, cell)
     return state
