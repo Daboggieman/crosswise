@@ -1,4 +1,4 @@
-from app.engine.board import State, empty, mark_X, mark_O, winning_triples, status_in_progress, status_drawn,status_won
+from app.engine.board import State, empty, mark_X, mark_O, winning_triples, status_in_progress, status_drawn, status_won
 
 def new_game():
     return State()
@@ -81,4 +81,12 @@ def evaluate(state: State) -> State:
             status=status_drawn
         )
 
+    return state
+
+def replay(moves:list[int]):
+    state = new_game()
+    if moves is None:
+        moves = []
+    for cell in moves:
+        state = apply_move(state, cell)
     return state
