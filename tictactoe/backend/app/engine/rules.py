@@ -40,15 +40,18 @@ class GameOverError(Exception):
 
 
 def other_player(player: str):
-    next_player = mark_O
+    if player not in (mark_X, mark_O):
+        raise ValueError("Player must be X or O.")
     if player == mark_X:
-        next_player = mark_O
+        return mark_O
     else:
-        next_player= mark_X
-    return next_player
+        return mark_X
 
 
 def apply_move(state: State, player: str, cell: int):
+    if state.status != status_in_progress:
+            raise GameOverError("The game is already over.")
+    
     if cell < 0 or cell > 8:
         raise InvalidCellError("Cell must be between 0 and 8.")
 
@@ -58,8 +61,6 @@ def apply_move(state: State, player: str, cell: int):
     if state.turn != player:
         raise WrongTurnError("It is not this player's turn.")
 
-    if state.status != status_in_progress:
-        raise GameOverError("The game is already over.")
 
     new_board = state.board[:cell] + (player,) + state.board[cell + 1:]
 
@@ -95,7 +96,7 @@ def evaluate(state: State) -> State:
 
 def replay(moves:list[int]):
     state = new_game()
-    if moves is None:
+    if moves is list[int] | None:
         moves = []
     for cell in moves:
         state = apply_move(state, state.turn, cell)
