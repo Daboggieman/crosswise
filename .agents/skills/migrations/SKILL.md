@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Create, review, apply, and troubleshoot Alembic migrations safely.
+Create, review, apply, and troubleshoot numbered SQL migrations safely.
 
 ## Project Stack
 

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 empty, mark_X, mark_O, status_in_progress, status_won, status_drawn = "-", "X", "O", "in_progress", "won", "drawn"
 
 EMPTY_BOARD = (empty,) * 9

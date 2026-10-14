@@ -61,7 +61,6 @@ Do not assume an API exists.
 Verify using:
 
 - installed package metadata/source
-- Context7
 - official documentation
 - actual runtime behavior
 
@@ -81,7 +80,7 @@ Verify:
 
 ## For external information
 
-Use web/fetch/Context7 when appropriate.
+Use WebFetch/WebSearch when appropriate.
 
 Distinguish:
 

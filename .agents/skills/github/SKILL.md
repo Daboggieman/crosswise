@@ -137,7 +137,7 @@ Use the smallest toolset that establishes reliable evidence.
 * creating or updating GitHub resources
 * verifying remote GitHub state
 
-## Use Filesystem MCP when:
+## Use built-in file tools (Read/Glob/Grep) when:
 
 * exploring project files
 * reading local source
@@ -145,16 +145,10 @@ Use the smallest toolset that establishes reliable evidence.
 * inspecting workflow definitions
 * locating implementation details
 
-## Use Context7 when:
-
-* current library/API behavior matters
-* version-specific behavior matters
-* a GitHub-related dependency requires documentation
-
-## Use Fetch when:
+## Use WebFetch/WebSearch when:
 
 * official documentation needs to be retrieved
-* Context7 does not provide the required information
+* current library/API behavior matters
 * a public web resource must be inspected
 
 ## Use Playwright when:
@@ -2084,7 +2078,7 @@ Prefer:
 5. runtime evidence
 6. community sources when necessary
 
-Use Context7 or Fetch when appropriate.
+Use WebFetch/WebSearch when appropriate.
 
 Do not rely solely on model memory for current CLI behavior.
 
@@ -2167,13 +2161,12 @@ The project's `.claude/skills/` system remains the primary project instruction l
 For Crosswise, use this conceptual architecture:
 
 ```text
-Claude Code / FCC
+Claude Code
         │
         ▼
 Project Instructions
         │
         ├── CLAUDE.md
-        ├── AGENT_WORKFLOW.md
         │
         ▼
 Skills
@@ -2190,10 +2183,8 @@ Skills
         ▼
 Tools
         │
-        ├── Filesystem MCP
-        ├── Context7 MCP
-        ├── Fetch MCP
-        ├── Playwright MCP
+        ├── Built-in file tools (Read/Glob/Grep)
+        ├── WebFetch/WebSearch
         ├── Git
         └── GitHub CLI
         │
@@ -2667,7 +2658,7 @@ For Crosswise frontend changes:
 7. inspect GitHub checks
 8. report both local and remote evidence
 
-Do not treat successful TypeScript compilation as proof that the UI works.
+Do not treat a successful build or syntax check as proof that the UI works.
 
 ---
 
@@ -2727,11 +2718,9 @@ Crosswise contains multiple application/package areas.
 Potential areas include:
 
 ```text
-apps/web
-apps/api
-packages/config
-packages/contracts
-packages/ui
+tictactoe/backend
+tictactoe/frontend
+tictactoe/docs
 scripts
 ```
 
@@ -3111,7 +3100,7 @@ Bad:
 
 Better:
 
-> The `web-build` job exits during `npm run build` with a TypeScript error in `apps/web/...`.
+> The `backend-tests` job exits during `pytest` with a failing test in `tictactoe/backend/tests/...`.
 
 Do not reproduce secrets from logs.
 
@@ -3480,10 +3469,10 @@ Before performing GitHub work, inspect:
 
 ```text
 CLAUDE.md
-AGENT_WORKFLOW.md
 .claude/skills/
 .github/
 README.md
+tictactoe/Tic Tac Toe Platform_ Technical Build Docs.md
 ```
 
 Follow project-specific conventions.
@@ -3499,39 +3488,48 @@ For Crosswise, the agent should generally consider these areas when a change tou
 ## Frontend
 
 ```text
-apps/web
+tictactoe/frontend
 ```
 
 Potential validation:
 
-* lint
-* typecheck
-* build
-* Playwright
+* HTML/CSS/JS syntax checks
+* browser verification
+* responsive behavior checks
 
 ## Backend
 
 ```text
-apps/api
+tictactoe/backend
 ```
 
 Potential validation:
 
-* Python checks
-* tests
+* ruff
+* pytest
 * API runtime verification
 
-## Shared packages
+## Shared
 
 ```text
-packages/
+tictactoe/docs
 ```
 
 Potential validation:
 
-* typecheck
-* dependent package builds
-* tests
+* documentation accuracy against implementation
+
+## GitHub Actions
+
+```text
+.github/workflows/
+```
+
+Potential validation:
+
+* YAML/config inspection
+* local equivalent commands
+* GitHub Actions run verification
 
 ## GitHub Actions
 
@@ -3554,8 +3552,7 @@ For a complete Crosswise feature:
 ```text
 1. Understand request
 2. Read CLAUDE.md
-3. Read AGENT_WORKFLOW.md
-4. Inspect repository
+3. Inspect repository
 5. Inspect Git state
 6. Inspect GitHub state
 7. Plan implementation

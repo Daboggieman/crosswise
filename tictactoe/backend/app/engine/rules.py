@@ -1,4 +1,14 @@
-from app.engine.board import State, empty, mark_X, mark_O, winning_triples, status_in_progress, status_drawn, status_won
+from app.engine.board import (
+    State,
+    empty,
+    mark_O,
+    mark_X,
+    status_drawn,
+    status_in_progress,
+    status_won,
+    winning_triples,
+)
+
 
 def new_game():
     return State()

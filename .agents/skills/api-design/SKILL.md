@@ -28,7 +28,7 @@ FastAPI, Pydantic, SQLite (dev) with PostgreSQL later, vanilla HTML/CSS/JS clien
 1. Inspect existing API architecture.
 2. Locate related routes, schemas, services, models, and tests.
 3. Identify the existing contract and compatibility requirements.
-4. Research uncertain framework behavior using Context7 or official documentation.
+4. Research uncertain framework behavior using official documentation or web search.
 5. Design request, response, error, authentication, and authorization behavior.
 6. Implement the smallest coherent change.
 7. Run static checks and API tests.
