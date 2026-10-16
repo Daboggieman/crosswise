@@ -16,7 +16,8 @@
       "Bash(.venv/bin/pytest *)",
       "Bash(.venv/bin/python -m pytest *)",
       "Bash(python3 -c *)",
-      "Bash(/usr/bin/python3 -c ' *)"
+      "Bash(/usr/bin/python3 -c ' *)",
+      "Bash(.venv/bin/python -m pytest tests/units/test_rules.py::test_replay_empty_or_none_gives_new_game -q)"
     ],
     "additionalDirectories": [
       "/tmp"
