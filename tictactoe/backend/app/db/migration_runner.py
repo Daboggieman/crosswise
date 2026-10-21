@@ -1,6 +1,7 @@
-import sqlite3
 from pathlib import Path
+
 from app.db.connection import connect
+
 
 def run_migrations(settings) -> int:
     """Apply unapplied SQL migrations in order and return the count."""
@@ -19,7 +20,6 @@ def run_migrations(settings) -> int:
             )
             """
         )
-        connection.commit()
         rows = connection.execute(
             "SELECT name FROM schema_migrations"
         ).fetchall()
@@ -35,10 +35,10 @@ def run_migrations(settings) -> int:
                 continue
             sql = migration_file.read_text(encoding="utf-8")
             try:
-                connection.executescript(
-                    "BEGIN IMMEDIATE;\n" + sql
-                )
-
+                # One transaction per migration: the DDL script and the
+                # bookkeeping insert commit together or not at all.
+                connection.execute("BEGIN IMMEDIATE")
+                connection.executescript(sql)
                 connection.execute(
                     """
                     INSERT INTO schema_migrations (name)
@@ -46,9 +46,7 @@ def run_migrations(settings) -> int:
                     """,
                     (migration_name,),
                 )
-
                 connection.commit()
-
             except BaseException:
                 if connection.in_transaction:
                     connection.rollback()

@@ -1,4 +1,3 @@
-import os
 import sqlite3
 from contextlib import contextmanager
 
@@ -7,6 +6,7 @@ def connect(settings):
     connection = sqlite3.connect(
         settings.database_path,
         check_same_thread=False,
+        isolation_level=None,
     )
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
