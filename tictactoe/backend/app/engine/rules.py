@@ -96,7 +96,7 @@ def evaluate(state: State) -> State:
 
 def replay(moves:list[int]):
     state = new_game()
-    if moves is list[int] | None:
+    if moves is None:
         moves = []
     for cell in moves:
         state = apply_move(state, state.turn, cell)
