@@ -35,8 +35,6 @@ def run_migrations(settings) -> int:
                 continue
             sql = migration_file.read_text(encoding="utf-8")
             try:
-                # One transaction per migration: the DDL script and the
-                # bookkeeping insert commit together or not at all.
                 connection.execute("BEGIN IMMEDIATE")
                 connection.executescript(sql)
                 connection.execute(
