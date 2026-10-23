@@ -28,3 +28,12 @@ def list_for_game(connection, game_id):
         (game_id,),
     ).fetchall()
     return [dict(row) for row in rows]
+
+def count_for_game(connection, game_id):
+    row = connection.execute(
+        """
+        SELECT COUNT(*) AS count FROM actions WHERE game_id = ?
+        """,
+        (game_id,),
+    ).fetchone()
+    return row["count"]
