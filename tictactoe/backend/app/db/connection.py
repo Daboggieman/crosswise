@@ -1,7 +1,6 @@
 import sqlite3
 from contextlib import contextmanager
 
-
 def connect(settings):
     connection = sqlite3.connect(
         settings.database_path,
