@@ -41,7 +41,7 @@ class ActionOut(BaseModel):
     created_at: dt
 
 
-class GameDetailResponse(BaseModel):
+class GameDetailResponse(GameResponse):
     moves: list[MoveOut]
     actions: list[ActionOut]
 

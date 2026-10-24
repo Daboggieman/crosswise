@@ -31,7 +31,7 @@ from app.api.schemas import(
     PlayMoveRequest,
 )
 from app.repositories.games import(
-    list_games
+    list_games as games_list_games
 )
 
 router = APIRouter(prefix="/games", tags=["games"])
@@ -109,12 +109,14 @@ def list_games(
         "winner": winner,
         "mode": mode,
         "player": player,
+        "page": page, 
+        "page_size": page_size, 
+        "sort": sort,
     }
     filters = {k: v for k, v in candidates.items() if v is not None}
 
     with connect(settings) as conn:
-        rows, total = list_games(conn, filters, page=page, page_size=page_size, sort=sort
-        )
+        rows, total = games_list_games(conn, filters)
     return {
         "items": [_serialize_summary(dict(r)) for r in rows],
         "total": total,
@@ -129,7 +131,7 @@ def get_game(
 ):
     game = gameservice_get_game_service(settings, game_id)
     if game is None:
-        raise _http_error(404, "game_not_found", f"Game {game_id} not found.")
+        raise GameNotFoundError(f"Game {game_id} not found.")
 
     return {
         **_serialize_game(game),
@@ -155,7 +157,6 @@ def play_move(
     except GameConflictError as exc:
         raise _http_error(409, "conflict", str(exc))
 
-    # play_move doesn't return game_id/mode/move_count, so re-read the game.
     game = gameservice_get_game_service(settings, game_id)
     api_status = _ENGINE_TO_API_STATUS.get(result["status"], result["status"])
 
