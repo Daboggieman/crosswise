@@ -1,9 +1,8 @@
 from fastapi import FastAPI, Request
 import logging as lg
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from tictactoe.backend.app.services.game_service import GameValidationError, GameNotFoundError, GameConflictError
+from app.services.game_service import GameValidationError, GameNotFoundError, GameConflictError
 
 
 def install_error_handlers(app: FastAPI) -> None:
@@ -16,7 +15,7 @@ def install_error_handlers(app: FastAPI) -> None:
             content={
                 "code": "validation_error",
                 "message":"request validation failed",
-                "detail": jsonable_encoder(exc.errors()),
+                "details": exc.errors(),
             }
         )
 
@@ -41,7 +40,7 @@ def install_error_handlers(app: FastAPI) -> None:
             status_code=404,
             content={
                 "code": "game_not_found",
-                "message": "game_not_found",      
+                "message": "Game not found",      
             }
         )
 

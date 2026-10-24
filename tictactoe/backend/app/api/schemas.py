@@ -12,7 +12,7 @@ class CreateGameRequest(BaseModel):
 class PlayMoveRequest(BaseModel):
     mark: Literal["X", "O"]
     cell: int = Field(ge=0, le=8)
-    ply: int | None
+    ply: int | None = None
 
 class GameResponse(BaseModel):
     game_id: str
@@ -45,14 +45,14 @@ class GameDetailResponse(BaseModel):
     moves: list[MoveOut]
     actions: list[ActionOut]
 
-class GameListResponse:
-    items: list[] #type:ignore
+class GameListResponse(BaseModel):
+    items: list[dict]
     total: int
     page: int
     page_size: int
 
 
-class ErrorResponse:
+class ErrorResponse(BaseModel):
     code: str
     message: str
     details: dict[str, Any] | None = None
