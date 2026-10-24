@@ -46,7 +46,7 @@ class GameDetailResponse(BaseModel):
     actions: list[ActionOut]
 
 class GameListResponse:
-    items: list[]
+    items: list[] #type:ignore
     total: int
     page: int
     page_size: int
