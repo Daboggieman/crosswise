@@ -199,9 +199,11 @@ def test_play_move_failure_leaves_no_partial_data(settings):
         game_service.update_result = original
 
     row = get_rows(settings, gid)
-    assert row["move_count"] == move_count_before
+    assert row["move_count"] == move_count_before  # no 5th move counted
     conn = connect(settings)
     try:
-        assert len(moves.list_for_game(conn, gid)) == 0
+        # The four setup moves persist (they were separate committed
+        # transactions); the point is the fifth move did NOT persist.
+        assert len(moves.list_for_game(conn, gid)) == move_count_before
     finally:
         conn.close()

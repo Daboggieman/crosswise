@@ -5,7 +5,6 @@ from sqlite3 import IntegrityError
 from app.db.connection import connect, transaction
 from app.engine.board import status_drawn, status_in_progress, status_won
 from app.engine.rules import replay
-from app.repositories.actions import count_for_game as actions_count_for_game
 from app.repositories.actions import max_seq_for_game as actions_max_seq
 from app.repositories.games import create, get_game, increment_move_count, update_result
 from app.repositories.moves import count_for_game as moves_count_for_game
