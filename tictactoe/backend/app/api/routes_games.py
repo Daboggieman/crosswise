@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.api.schemas import (
     ActionOut,
@@ -15,9 +15,7 @@ from app.config import Settings, get_settings
 from app.db.connection import connect
 from app.repositories.games import list_games as repo_list_games
 from app.services.game_service import (
-    GameConflictError,
     GameNotFoundError,
-    GameValidationError,
 )
 from app.services.game_service import (
     create_game as gameservice_create_game,
@@ -41,30 +39,24 @@ _ENGINE_TO_API_STATUS ={
 def get_settings_dep() -> Settings:
     return get_settings()
 
-def _http_error(status_code: int, code: str, message:str) -> HTTPException:
-    return HTTPException(
-        status_code = status_code,
-        detail={"code": code, "message": message, "details": None,}
-    )
-
 def _build_board(moves: list[dict]) -> list[str]:
     board = [EMPTY_CELL] * 9
     for m in moves:
         board[m["cell"]] = m["mark"]
     return board
 
-def _serialize_game(game:dict, *, move_number:int | None =None):
-    moves = game.get("moves", [])
-    in_progress = game["status"] == "in_progress"
+def _serialize_game(top_level: dict, *, move_number: int | None = None):
+    game_row = top_level["game"]
+    moves = top_level.get("moves", [])
     return {
-        "game_id": game["id"],
-        "mode": game["mode"],
-        "status": game["status"],
+        "game_id": game_row["id"],
+        "mode": game_row["mode"],
+        "status": game_row["status"],
         "board": _build_board(moves),
-        "next_player": ("X" if len(moves) % 2 == 0 else "O") if in_progress else None,
-        "winner": game.get("winner"),
-        "winning_line": game.get("winning_line"),
-        "move_count": len(moves),
+        "next_player": top_level.get("next_player"),
+        "winner": top_level.get("winner"),
+        "winning_line": top_level.get("winning_line"),
+        "move_count": game_row["move_count"],
         "move_number": move_number,
     }
 
@@ -73,8 +65,8 @@ def _serialize_summary(row):
         "game_id": row["id"],
         "mode": row["mode"],
         "status": row["status"],
-        "winner": row.get("winner"),
-        "move_count": row.get("move_count", 0),
+        "winner": row["winner"],
+        "move_count": row["move_count"],
     }
 
 @router.post("", response_model=GameResponse, status_code=201)
@@ -140,16 +132,12 @@ def play_move(
     body: PlayMoveRequest,
     settings: Settings = Depends(get_settings),  # noqa: B008
 ):
-    try:
-        result = gameservice_play_move(
-            settings, game_id, body.mark, body.cell, body.ply
-        )
-    except GameNotFoundError as exc:
-        raise _http_error(404, "game_not_found", str(exc))
-    except GameValidationError as exc:
-        raise _http_error(422, "validation_error", str(exc))
-    except GameConflictError as exc:
-        raise _http_error(409, "conflict", str(exc))
+    # Service exceptions (GameNotFoundError/GameValidationError/GameConflictError)
+    # propagate to the app-wide handlers in app/api/errors.py, which map them
+    # to 404/422/409 with the spec's error shape.
+    result = gameservice_play_move(
+        settings, game_id, body.mark, body.cell, body.ply
+    )
 
     game = gameservice_get_game_service(settings, game_id)
     api_status = _ENGINE_TO_API_STATUS.get(result["status"], result["status"])
@@ -158,10 +146,10 @@ def play_move(
         "game_id": game_id,
         "mode": game["mode"],
         "status": api_status,
-        "board": result["board"],
+        "board": list(result["board"]),
         "next_player": result["next_player"],
         "winner": result["winner"],
-        "winning_line": result["winning_line"],
-        "move_count": len(game.get("moves", [])),
+        "winning_line": list(result["winning_line"]) if result["winning_line"] else None,
+        "move_count": game["game"]["move_count"],
         "move_number": result["move_number"],
     }
