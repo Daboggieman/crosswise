@@ -13,11 +13,11 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND_DIR))
 
+from starlette.testclient import TestClient
+
 from app.config import get_settings
 from app.db.migration_runner import run_migrations
 from app.main import create_app
-from starlette.testclient import TestClient
-
 
 # ---------------------------------------------------------------------------
 # Per-test database fixture

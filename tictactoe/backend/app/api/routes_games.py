@@ -136,7 +136,7 @@ def play_move(
     # propagate to the app-wide handlers in app/api/errors.py, which map them
     # to 404/422/409 with the spec's error shape.
     result = gameservice_play_move(
-        settings, game_id, body.mark, body.cell, body.ply
+        settings, game_id, body.mark, body.cell
     )
 
     game = gameservice_get_game_service(settings, game_id)
@@ -144,7 +144,7 @@ def play_move(
 
     return {
         "game_id": game_id,
-        "mode": game["mode"],
+        "mode": game["game"]["mode"],
         "status": api_status,
         "board": list(result["board"]),
         "next_player": result["next_player"],
