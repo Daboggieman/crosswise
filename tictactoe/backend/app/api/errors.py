@@ -1,8 +1,16 @@
+import logging
+
 from fastapi import FastAPI, Request
-import logging as lg
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from app.services.game_service import GameValidationError, GameNotFoundError, GameConflictError
+
+from app.services.game_service import (
+    GameConflictError,
+    GameNotFoundError,
+    GameValidationError,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def install_error_handlers(app: FastAPI) -> None:
@@ -40,7 +48,7 @@ def install_error_handlers(app: FastAPI) -> None:
             status_code=404,
             content={
                 "code": "game_not_found",
-                "message": "Game not found",      
+                "message": "Game not found.",      
             }
         )
 
@@ -60,7 +68,7 @@ def install_error_handlers(app: FastAPI) -> None:
     async def handle_unexpected_error(
         request: Request, exc: Exception
     ) -> JSONResponse:
-        lg.error(
+        logger.error(
             "Unhandled exception on %s %s",
             request.method,
             request.url.path,

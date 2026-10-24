@@ -1,37 +1,32 @@
-from fastapi import (
-    Depends, 
-    FastAPI,
-    APIRouter, 
-    HTTPException, 
-    Query
-)
-from typing import (Literal, Any)
+from typing import Literal
 
-from app.services.game_service import (
-    GameConflictError, 
-    GameNotFoundError, 
-    GameValidationError, 
-    create_game as gameservice_create_game,
-    get_game_service as gameservice_get_game_service,
-    play_move as gameservice_play_move
-)
-from app.config import (
-    Settings, 
-    get_settings
-)
-from app.db.connection import (
-    connect,
-    transaction
-)
-from app.api.schemas import(
-    CreateGameRequest, 
-    GameDetailResponse, 
-    GameResponse, 
-    GameListResponse, 
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from app.api.schemas import (
+    ActionOut,
+    CreateGameRequest,
+    GameDetailResponse,
+    GameListResponse,
+    GameResponse,
+    MoveOut,
     PlayMoveRequest,
 )
-from app.repositories.games import(
-    list_games as games_list_games
+from app.config import Settings, get_settings
+from app.db.connection import connect
+from app.repositories.games import list_games as repo_list_games
+from app.services.game_service import (
+    GameConflictError,
+    GameNotFoundError,
+    GameValidationError,
+)
+from app.services.game_service import (
+    create_game as gameservice_create_game,
+)
+from app.services.game_service import (
+    get_game_service as gameservice_get_game_service,
+)
+from app.services.game_service import (
+    play_move as gameservice_play_move,
 )
 
 router = APIRouter(prefix="/games", tags=["games"])
@@ -60,7 +55,7 @@ def _build_board(moves: list[dict]) -> list[str]:
 
 def _serialize_game(game:dict, *, move_number:int | None =None):
     moves = game.get("moves", [])
-    in_progress = game["status"] == "in_Progress"
+    in_progress = game["status"] == "in_progress"
     return {
         "game_id": game["id"],
         "mode": game["mode"],
@@ -83,7 +78,7 @@ def _serialize_summary(row):
     }
 
 @router.post("", response_model=GameResponse, status_code=201)
-def create_game(body: CreateGameRequest, settings: Settings = Depends(get_settings_dep),):
+def create_game(body: CreateGameRequest, settings: Settings = Depends(get_settings)):  # noqa: B008
     x_id = body.player_x_id if body.player_x_id is not None else HUMAN_PLAYER_ID
     o_id = body.player_o_id if body.player_o_id is not None else HUMAN_PLAYER_ID
 
@@ -102,21 +97,23 @@ def list_games(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     sort: str | None = None,
-    settings: Settings = Depends(get_settings_dep),
+    settings: Settings = Depends(get_settings),  # noqa: B008
 ):
     candidates = {
         "status": status,
         "winner": winner,
         "mode": mode,
         "player": player,
-        "page": page, 
-        "page_size": page_size, 
+        "page": page,
+        "page_size": page_size,
         "sort": sort,
     }
     filters = {k: v for k, v in candidates.items() if v is not None}
 
     with connect(settings) as conn:
-        rows, total = games_list_games(conn, filters)
+        result = repo_list_games(conn, filters)
+    rows = result["games"]
+    total = result["total"]
     return {
         "items": [_serialize_summary(dict(r)) for r in rows],
         "total": total,
@@ -125,18 +122,15 @@ def list_games(
     }
 
 @router.get("/{game_id}", response_model=GameDetailResponse)
-def get_game(
-    game_id: str,
-    settings: Settings = Depends(get_settings_dep),
-):
+def get_game(game_id: str, settings: Settings = Depends(get_settings)):  # noqa: B008
     game = gameservice_get_game_service(settings, game_id)
     if game is None:
         raise GameNotFoundError(f"Game {game_id} not found.")
-
+    # sqlite3.Row objects must be converted to dicts for Pydantic.
     return {
         **_serialize_game(game),
-        "moves": game.get("moves", []),
-        "actions": game.get("actions", []),
+        "moves": [MoveOut(**dict(m)) for m in game.get("moves", [])],
+        "actions": [ActionOut(**dict(a)) for a in game.get("actions", [])],
     }
 
 
@@ -144,7 +138,7 @@ def get_game(
 def play_move(
     game_id: str,
     body: PlayMoveRequest,
-    settings: Settings = Depends(get_settings_dep),
+    settings: Settings = Depends(get_settings),  # noqa: B008
 ):
     try:
         result = gameservice_play_move(

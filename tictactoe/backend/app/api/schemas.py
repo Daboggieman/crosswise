@@ -1,6 +1,7 @@
-from typing import Literal, Any
-from pydantic import BaseModel, Field
 from datetime import datetime as dt
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field
 
 
 class CreateGameRequest(BaseModel):
@@ -37,7 +38,7 @@ class ActionOut(BaseModel):
     seq: int
     type: str
     actor: str
-    payload: dict[str, Any]
+    payload: dict[str, Any] | None = None
     created_at: dt
 
 
