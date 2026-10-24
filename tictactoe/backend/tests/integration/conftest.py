@@ -10,8 +10,8 @@ import pytest
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app.config import get_settings  # noqa: E402
-from app.db.migration_runner import run_migrations  # noqa: E402
+from app.config import get_settings
+from app.db.migration_runner import run_migrations
 
 
 @pytest.fixture()

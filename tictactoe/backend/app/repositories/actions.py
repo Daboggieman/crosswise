@@ -37,3 +37,13 @@ def count_for_game(connection, game_id):
         (game_id,),
     ).fetchone()
     return row["count"]
+
+def max_seq_for_game(connection, game_id):
+    """Highest seq used by any action in this game, or 0 if there are none."""
+    row = connection.execute(
+        """
+        SELECT COALESCE(MAX(seq), 0) AS max_seq FROM actions WHERE game_id = ?
+        """,
+        (game_id,),
+    ).fetchone()
+    return row["max_seq"]

@@ -6,10 +6,12 @@ from app.db.connection import connect, transaction
 from app.engine.board import status_drawn, status_in_progress, status_won
 from app.engine.rules import replay
 from app.repositories.actions import count_for_game as actions_count_for_game
+from app.repositories.actions import max_seq_for_game as actions_max_seq
 from app.repositories.games import create, get_game, increment_move_count, update_result
 from app.repositories.moves import count_for_game as moves_count_for_game
 from app.repositories.moves import insert as insert_move
 from app.repositories.moves import list_for_game as list_moves_for_game
+from app.repositories.moves import max_seq_for_game as moves_max_seq
 
 
 class GameNotFoundError(Exception):
@@ -116,10 +118,8 @@ def play_move(settings, game_id, mark, cell, now: datetime | None = None):
             if cell in current_cells:
                 raise GameValidationError(f"Cell {cell} is already occupied.")
 
-            # 3. Allocate shared seq: max of moves seq and actions seq + 1.
-            move_seq = moves_count_for_game(tx, game_id)
-            action_seq = actions_count_for_game(tx, game_id)
-            seq = max(move_seq, action_seq) + 1
+            # 3. Allocate shared seq: highest seq used by any move or action + 1.
+            seq = max(moves_max_seq(tx, game_id), actions_max_seq(tx, game_id)) + 1
 
             # 4. Insert the move.
             ply = moves_count_for_game(tx, game_id) + 1

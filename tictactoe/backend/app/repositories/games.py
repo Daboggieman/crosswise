@@ -94,7 +94,7 @@ def list_games(connection, filters=None):
     query = (
         clauses[0]
         + where_sql
-        + f"ORDER BY {order_sql} LIMIT ? OFFSET ?"
+        + f" ORDER BY {order_sql} LIMIT ? OFFSET ?"
     )
     offset = (page - 1) * page_size
     query_params = params + [limit, offset]

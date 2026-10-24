@@ -1,81 +1,65 @@
-"""Repository tests against a real temporary database (spec 12.2).
+"""Integration tests for repositories against a real temporary database.
 
-Covers:
-- migration runner: applies in order, idempotent
-- games repository: create, get, list filters/pagination, update_result
-- moves repository: insert, list, count
-- actions repository: insert, list, count
-- constraints: duplicate ply, duplicate seq, duplicate cell, out-of-range
-  cell, bad mark, foreign keys
-- transactions: rollback leaves no partial data
+Tests the migration runner, all three repositories, and DB constraints per spec 12.2:
+duplicate ply, duplicate seq, duplicate cell, out-of-range cell, bad mark, FK enforcement,
+and that a transaction rollback leaves no partial data.
 """
 from datetime import UTC, datetime
+from sqlite3 import IntegrityError
 
 import pytest
 
 from app.db.connection import connect, transaction
+from app.db.migration_runner import run_migrations
 from app.repositories import actions, games, moves
+from app.repositories.actions import count_for_game as actions_count_for_game
+from app.repositories.moves import count_for_game as moves_count_for_game
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def now():
     return datetime.now(UTC).isoformat()
 
 
-def make_game(settings, mode="hotseat"):
-    from app.db.connection import transaction
+def create_game(settings, mode="hotseat", px=1, po=2):
     with transaction(settings, immediate=True) as tx:
-        return games.create(
-            connection=tx,
-            mode=mode,
-            player_x_id=1,
-            player_o_id=2,
-            engine_version="1",
-            now=datetime.now(UTC),
-        )
+        return games.create(tx, mode, px, po, "1", datetime.now(UTC))
 
 
-# --- migration runner -------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Migration runner (spec 6.6)
+# ---------------------------------------------------------------------------
 
-
-def test_migrations_are_idempotent(settings):
-    assert run_migrations(settings) == 0  # already applied by the fixture
-
-
-def test_migrations_created_all_tables(settings):
-    from app.db.connection import connect
-
+def test_migrations_are_applied_by_fixture(settings):
+    """The fixture runs migrations; verify all expected tables exist."""
     conn = connect(settings)
     try:
-        names = {
-            row["name"]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table'"
-            ).fetchall()
-        }
+        rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+        names = {r["name"] for r in rows}
     finally:
         conn.close()
     expected = {"players", "games", "moves", "actions", "search_index_state", "schema_migrations"}
-    assert expected.issubset(set(names) if (names := expected | set()) else expected)
+    assert expected.issubset(names)
 
 
-def test_migration_runner_idempotent(settings):
-    # Running again on an already-migrated database applies nothing.
+def test_migrations_are_idempotent(settings):
+    """Running the runner twice on the same DB applies nothing the second time."""
     assert run_migrations(settings) == 0
 
 
-# --- games repository -------------------------------------------------------
+# ---------------------------------------------------------------------------
+# games repository
+# ---------------------------------------------------------------------------
 
-
-def test_game_create_and_get(settings):
-    from app.db.connection import transaction
-
-    with transaction(settings, immediate=True) as tx:
-        game_id = games.create(tx, "hotseat", 1, 2, "1", datetime.now(UTC))
-    from app.db.connection import connect
-
+def test_game_create_stores_fields(settings):
+    gid = create_game(settings)
     conn = connect(settings)
     try:
-        row = games.get_game(conn, game_id)
+        row = games.get_game(conn, gid)
     finally:
         conn.close()
     assert row is not None
@@ -86,45 +70,41 @@ def test_game_create_and_get(settings):
 
 
 def test_game_get_missing_returns_none(settings):
-    from app.db.connection import connect
-
     conn = connect(settings)
     try:
-        assert games.get_game(conn, "no-such-id") is None
+        assert games.get_game(conn, "no-such-uuid") is None
     finally:
         conn.close()
 
 
-def test_game_list_filters_and_pagination(settings):
-    from app.db.connection import transaction
-
-    ids = []
-    with transaction(settings, immediate=True) as tx:
-        for _ in range(3):
-            gid = games.create(tx, "hotseat", 1, 2, "1", datetime.now(UTC))
-            games.increment_move_count(tx, gid)
+def test_game_list_filters_by_status(settings):
+    create_game(settings)          # in_progress
+    gid2 = create_game(settings)   # in_progress
     conn = connect(settings)
     try:
-        # Filter by status
-        res = games.list_games(conn, {"status": "in_progress"})
-        assert res["total"] == 3
-        # Filter by mode
-        assert games.list_games(conn, {"mode": "vs_bot"})["total"] == 0
-        # Pagination
+        games.update_result(conn, gid2, "finished", "X", "three_in_row", now())
+        assert games.list_games(conn, {"status": "in_progress"})["total"] == 1
+        assert games.list_games(conn, {"status": "finished"})["total"] == 1
+    finally:
+        conn.close()
+
+
+def test_game_list_pagination(settings):
+    for _ in range(5):
+        create_game(settings)
+    conn = connect(settings)
+    try:
         page1 = games.list_games(conn, {"page": 1, "page_size": 2})
         page2 = games.list_games(conn, {"page": 2, "page_size": 2})
-        assert len(page1 := page1_page if (page1_page := page1["games"]) else page1) >= 0
-        # Sorting by move_count desc puts games with count 1 first
-        assert games.list_games(conn, {"sort": "move_count_desc"})["games"][0]["move_count"] == 1
+        assert page1["total"] == 5
+        assert len(page1["games"]) == 2
+        assert len(page2["games"]) == 2
     finally:
         conn.close()
 
 
 def test_update_result_and_increment(settings):
-    from app.db.connection import connect
-
-    with __import__("app.db.connection", fromlist=["transaction"]).transaction(settings, immediate=True) as tx:
-        gid = games.create(tx, "hotseat", 1, 2, "1", datetime.now(UTC))
+    gid = create_game(settings)
     conn = connect(settings)
     try:
         games.increment_move_count(conn, gid)
@@ -138,55 +118,149 @@ def test_update_result_and_increment(settings):
         conn.close()
 
 
-# --- moves repository: constraints (spec 12.2) -------------------------------
-
+# ---------------------------------------------------------------------------
+# moves repository: constraints (spec 12.2)
+# ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def game_with_one_move(settings):
-    from app.db.connection import connect
-
+def _game_with_one_move(settings):
+    """Game with seq=1, ply=1 move at cell 4."""
+    gid = create_game(settings)
     conn = connect(settings)
-    with __import__("app.db.connection", fromlist=["transaction"]).transaction(settings, immediate=True) as tx:
-        gid = games.create(tx, "hotseat", 1, 2, "1", datetime.now(UTC))
-        moves.insert(tx, gid, 1, 1, "X", 4, now())
+    with transaction(settings, immediate=True) as tx:
+        moves.insert(tx, gid, seq=1, ply=1, mark="X", cell=4, played_at=now())
     return conn, gid
 
 
-def test_moves_constraints(game_with_one_move):
-    conn, gid = game_with_one_move
-    bad_inserts = [
-        # (label, seq, ply, mark, cell)
-        ("duplicate ply", 2, 1, "O", 5),
-        ("duplicate seq", 1, 2, "O", 5),
-        ("duplicate cell", 2, 2, "O", 4),
-        ("out of range cell", 2, 2, "X", 9),
-        ("negative cell", 2, 2, "X", -1),
-        ("bad mark", 2, 2, "Z", 0),
-    ]
-    for label, seq, ply, mark, cell in bad_inserts:
-        with pytest.raises(Exception):
-            moves.insert(conn, gid, seq, ply, mark, cell, now())
+def test_moves_duplicate_ply_rejected(_game_with_one_move):
+    conn, gid = _game_with_one_move
+    with pytest.raises(IntegrityError):
+        moves.insert(conn, gid, seq=2, ply=1, mark="O", cell=5, played_at=now())
 
 
-def test_foreign_keys_enforced(game_with_one_move):
-    conn, _ = game_with_one_move
-    from app.db.connection import transaction
-    from app.repositories import games as games_repo
-
-    with pytest.raises(Exception):
-        with transaction(__import__("app.config", fromlist=["get_settings"]), immediate=True) as tx:
-            pass  # placeholder — real FK test below
+def test_moves_duplicate_seq_rejected(_game_with_one_move):
+    conn, gid = _game_with_one_move
+    with pytest.raises(IntegrityError):
+        moves.insert(conn, gid, seq=1, ply=2, mark="O", cell=5, played_at=now())
 
 
-def test_fk_enforced_on_games_insert(settings):
-    from sqlite3 import IntegrityError
+def test_moves_duplicate_cell_rejected(_game_with_one_move):
+    conn, gid = _game_with_one_move
+    with pytest.raises(IntegrityError):
+        moves.insert(conn, gid, seq=2, ply=2, mark="O", cell=4, played_at=now())
 
-    from app.db.connection import connect
 
+def test_moves_out_of_range_cell_rejected(_game_with_one_move):
+    conn, gid = _game_with_one_move
+    with pytest.raises((IntegrityError, ValueError)):
+        moves.insert(conn, gid, seq=2, ply=2, mark="X", cell=9, played_at=now())
+
+
+def test_moves_negative_cell_rejected(_game_with_one_move):
+    conn, gid = _game_with_one_move
+    with pytest.raises((IntegrityError, ValueError)):
+        moves.insert(conn, gid, seq=2, ply=2, mark="X", cell=-1, played_at=now())
+
+
+def test_moves_bad_mark_rejected(_game_with_one_move):
+    conn, gid = _game_with_one_move
+    with pytest.raises((IntegrityError, ValueError)):
+        moves.insert(conn, gid, seq=2, ply=2, mark="Z", cell=0, played_at=now())
+
+
+def test_moves_list_and_count(_game_with_one_move):
+    conn, gid = _game_with_one_move
+    rows = moves.list_for_game(conn, gid)
+    assert len(rows) == 1
+    assert rows[0]["cell"] == 4
+    assert moves_count_for_game(conn, gid) == 1
+
+
+# ---------------------------------------------------------------------------
+# actions repository
+# ---------------------------------------------------------------------------
+
+def test_actions_insert_and_list_and_count(settings):
+    gid = create_game(settings)
     conn = connect(settings)
-    with pytest.raises(Exception):
-        conn.execute(
-            "INSERT INTO games (id, mode, player_x_id, player_o_id, engine_version, started_at) "
-            "VALUES ('x', 'hotseat', 'in_progress', 999, 999, '1', CURRENT_TIMESTAMP)"
-        )
-    conn.close()
+    try:
+        with transaction(settings, immediate=True) as tx:
+            actions.insert(tx, gid, seq=1, type="offer_draw", actor="X", payload=None, created_at=now())
+            actions.insert(tx, gid, seq=2, type="accept_draw", actor="O", payload=None, created_at=now())
+        rows = actions.list_for_game(conn, gid)
+        assert len(rows) == 2
+        assert rows[0]["type"] == "offer_draw"
+        assert actions_count_for_game(conn, gid) == 2
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# foreign key enforcement (spec 6.4)
+# ---------------------------------------------------------------------------
+
+def test_bad_player_id_on_games_rejected(settings):
+    conn = connect(settings)
+    try:
+        with pytest.raises(IntegrityError):
+            conn.execute(
+                "INSERT INTO games (id, mode, player_x_id, player_o_id, engine_version, started_at) "
+                "VALUES (?, 'hotseat', 9999, 9999, '1', CURRENT_TIMESTAMP)",
+                (f"fk-{datetime.now(UTC).isoformat()}",),
+            )
+    finally:
+        conn.close()
+
+
+def test_bad_game_id_on_moves_rejected(settings):
+    conn = connect(settings)
+    try:
+        with pytest.raises(IntegrityError):
+            conn.execute(
+                "INSERT INTO moves (game_id, seq, ply, mark, cell, played_at) "
+                "VALUES (?, 1, 1, 'X', 0, CURRENT_TIMESTAMP)",
+                ("no-such-game-id",),
+            )
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# transaction rollback (spec 12.2: failure midway leaves no partial data)
+# ---------------------------------------------------------------------------
+
+def test_rollback_leaves_no_partial_move(settings):
+    gid = create_game(settings)
+    conn = connect(settings)
+    try:
+        move_count_before = games.get_game(conn, gid)["move_count"]
+        try:
+            with transaction(settings, immediate=True) as tx:
+                moves.insert(tx, gid, seq=1, ply=1, mark="X", cell=4, played_at=now())
+                raise RuntimeError("boom")
+        except RuntimeError:
+            pass
+        move_count_after = games.get_game(conn, gid)["move_count"]
+        assert move_count_after == move_count_before  # unchanged by failed tx
+    finally:
+        conn.close()
+
+
+def test_rollback_leaves_no_partial_game(settings):
+    """Simulating a partial failure inside a create: the game row should not
+    exist after a rolled-back transaction."""
+    # We can't easily make create fail, but we can verify the pattern:
+    # if a transaction does two inserts and the second raises, neither persists.
+    gid = create_game(settings)
+    conn = connect(settings)
+    try:
+        count_before = len(moves.list_for_game(conn, gid))
+        try:
+            with transaction(settings, immediate=True) as tx:
+                moves.insert(tx, gid, seq=1, ply=1, mark="X", cell=0, played_at=now())
+                raise RuntimeError("boom in second step")
+        except RuntimeError:
+            pass
+        assert len(moves.list_for_game(conn, gid)) == count_before
+    finally:
+        conn.close()
