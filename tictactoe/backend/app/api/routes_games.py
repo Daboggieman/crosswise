@@ -1,10 +1,38 @@
-from fastapi import Depends, FastAPI, APIRouter, HTTPException, Query
-from typing import Literal, Any
+from fastapi import (
+    Depends, 
+    FastAPI,
+    APIRouter, 
+    HTTPException, 
+    Query
+)
+from typing import (Literal, Any)
 
-from app.services.game_service import GameConflictError, GameNotFoundError, GameValidationError
-from app.config import Settings, get_settings
-from app.db
-from app.api.schemas import CreateGameRequest, GameDetailResponse, GameResponse, GameListResponse, PlayMoveRequest
+from app.services.game_service import (
+    GameConflictError, 
+    GameNotFoundError, 
+    GameValidationError, 
+    create_game as gameservice_create_game,
+    get_game_service as gameservice_get_game_service,
+    play_move as gameservice_play_move
+)
+from app.config import (
+    Settings, 
+    get_settings
+)
+from app.db.connection import (
+    connect,
+    transaction
+)
+from app.api.schemas import(
+    CreateGameRequest, 
+    GameDetailResponse, 
+    GameResponse, 
+    GameListResponse, 
+    PlayMoveRequest,
+)
+from app.repositories.games import(
+    list_games
+)
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -30,7 +58,7 @@ def _build_board(moves: list[dict]) -> list[str]:
         board[m["cell"]] = m["mark"]
     return board
 
-def __serialize_game(game:dict, *, move_number:int | None =None):
+def _serialize_game(game:dict, *, move_number:int | None =None):
     moves = game.get("moves", [])
     in_progress = game["status"] == "in_Progress"
     return {
@@ -45,7 +73,7 @@ def __serialize_game(game:dict, *, move_number:int | None =None):
         "move_number": move_number,
     }
 
-def _serialize_summary(row: dict) -> dict:
+def _serialize_summary(row):
     return {
         "game_id": row["id"],
         "mode": row["mode"],
@@ -56,5 +84,89 @@ def _serialize_summary(row: dict) -> dict:
 
 @router.post("", response_model=GameResponse, status_code=201)
 def create_game(body: CreateGameRequest, settings: Settings = Depends(get_settings_dep),):
-    x_id = body.player_x_id if body.player_x_id is not none else HUMAN_PLAYER
-    O_ID
+    x_id = body.player_x_id if body.player_x_id is not None else HUMAN_PLAYER_ID
+    o_id = body.player_o_id if body.player_o_id is not None else HUMAN_PLAYER_ID
+
+    game_id = gameservice_create_game(settings, body.mode, x_id, o_id)
+    game = gameservice_get_game_service(settings, game_id)
+    
+    return _serialize_game(game)
+
+
+@router.get("", response_model=GameListResponse)
+def list_games(
+    status: str | None = None,
+    winner: str | None = None,
+    mode: Literal["hotseat", "vs_bot", "online"] | None = None,
+    player: int | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    sort: str | None = None,
+    settings: Settings = Depends(get_settings_dep),
+):
+    candidates = {
+        "status": status,
+        "winner": winner,
+        "mode": mode,
+        "player": player,
+    }
+    filters = {k: v for k, v in candidates.items() if v is not None}
+
+    with connect(settings) as conn:
+        rows, total = list_games(conn, filters, page=page, page_size=page_size, sort=sort
+        )
+    return {
+        "items": [_serialize_summary(dict(r)) for r in rows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+@router.get("/{game_id}", response_model=GameDetailResponse)
+def get_game(
+    game_id: str,
+    settings: Settings = Depends(get_settings_dep),
+):
+    game = gameservice_get_game_service(settings, game_id)
+    if game is None:
+        raise _http_error(404, "game_not_found", f"Game {game_id} not found.")
+
+    return {
+        **_serialize_game(game),
+        "moves": game.get("moves", []),
+        "actions": game.get("actions", []),
+    }
+
+
+@router.post("/{game_id}/moves", response_model=GameResponse)
+def play_move(
+    game_id: str,
+    body: PlayMoveRequest,
+    settings: Settings = Depends(get_settings_dep),
+):
+    try:
+        result = gameservice_play_move(
+            settings, game_id, body.mark, body.cell, body.ply
+        )
+    except GameNotFoundError as exc:
+        raise _http_error(404, "game_not_found", str(exc))
+    except GameValidationError as exc:
+        raise _http_error(422, "validation_error", str(exc))
+    except GameConflictError as exc:
+        raise _http_error(409, "conflict", str(exc))
+
+    # play_move doesn't return game_id/mode/move_count, so re-read the game.
+    game = gameservice_get_game_service(settings, game_id)
+    api_status = _ENGINE_TO_API_STATUS.get(result["status"], result["status"])
+
+    return {
+        "game_id": game_id,
+        "mode": game["mode"],
+        "status": api_status,
+        "board": result["board"],
+        "next_player": result["next_player"],
+        "winner": result["winner"],
+        "winning_line": result["winning_line"],
+        "move_count": len(game.get("moves", [])),
+        "move_number": result["move_number"],
+    }
