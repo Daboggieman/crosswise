@@ -1,4 +1,14 @@
-from app.engine.board import State, empty, mark_X, mark_O, winning_triples, status_in_progress, status_drawn, status_won
+from app.engine.board import (
+    State,
+    empty,
+    mark_O,
+    mark_X,
+    status_drawn,
+    status_in_progress,
+    status_won,
+    winning_triples,
+)
+
 
 def new_game():
     return State()
@@ -30,15 +40,18 @@ class GameOverError(Exception):
 
 
 def other_player(player: str):
-    next_player = mark_O
+    if player not in (mark_X, mark_O):
+        raise ValueError("Player must be X or O.")
     if player == mark_X:
-        next_player = mark_O
+        return mark_O
     else:
-        next_player= mark_X
-    return next_player
+        return mark_X
 
 
 def apply_move(state: State, player: str, cell: int):
+    if state.status != status_in_progress:
+            raise GameOverError("The game is already over.")
+    
     if cell < 0 or cell > 8:
         raise InvalidCellError("Cell must be between 0 and 8.")
 
@@ -48,8 +61,6 @@ def apply_move(state: State, player: str, cell: int):
     if state.turn != player:
         raise WrongTurnError("It is not this player's turn.")
 
-    if state.status != status_in_progress:
-        raise GameOverError("The game is already over.")
 
     new_board = state.board[:cell] + (player,) + state.board[cell + 1:]
 

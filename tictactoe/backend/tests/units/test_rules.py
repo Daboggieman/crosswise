@@ -1,4 +1,4 @@
-import pytest #type:ignore
+import pytest  #type:ignore
 
 from app.engine.board import (
     State,
@@ -20,7 +20,6 @@ from app.engine.rules import (
     new_game,
     replay,
 )
-
 
 # --- new_game -------------------------------------------------------------
 
@@ -206,7 +205,7 @@ def test_exhaustive_game_space_invariants_hold():
         # Invariant 1: counts of X and O differ by at most one
         xs = state.board.count(mark_X)
         os = state.board.count(mark_O)
-        assert os == xs or os == xs - 1, f"mark count imbalance at a node"
+        assert os == xs or os == xs - 1, "mark count imbalance at a node"
 
         # Invariant 2: no moves can be played once the game is over
         if state.status != status_in_progress:
@@ -228,12 +227,53 @@ def test_exhaustive_game_space_invariants_hold():
     assert checked >= 5000, f"walked only {checked} states; space seems too small"
 
 
-# --- notation (not yet implemented) ---------------------------------------
+# --- notation --------------------------------------------------------------
 
 
-# @pytest.mark.skip(reason="notation.py is not yet implemented (planned for Phase 1 completion)")
-# def test_notation_index_conversion_roundtrip():
-#     from app.engine import notation
-#     for index in range(9):
-#         coord = notation.index_to_coord(index)
-#         assert notation.coord_to_index(*coord) == index
+def test_notation_index_conversion_roundtrip():
+    from app.engine import notation
+
+    for index in range(9):
+        coord = notation.index_to_coord(index)
+        assert notation.coord_to_index(*coord) == index
+
+
+def test_notation_index_to_coord_layout():
+    from app.engine import notation
+
+    # A1 is the top-left cell, C3 the bottom-right.
+    assert notation.index_to_coord(0) == ("A", 1)
+    assert notation.index_to_coord(2) == ("C", 1)
+    assert notation.index_to_coord(4) == ("B", 2)
+    assert notation.index_to_coord(8) == ("C", 3)
+
+
+def test_notation_string_roundtrip():
+    from app.engine import notation
+
+    for index in range(9):
+        assert notation.notation_to_index(notation.index_to_notation(index)) == index
+
+
+def test_notation_accepts_lowercase_and_whitespace():
+    from app.engine import notation
+
+    assert notation.notation_to_index(" a1 ") == 0
+    assert notation.notation_to_index("c3") == 8
+
+
+def test_notation_rejects_out_of_range():
+    from app.engine import notation
+    from app.engine.notation import InvalidNotationError
+
+    with pytest.raises(InvalidNotationError):
+        notation.index_to_coord(9)
+    with pytest.raises(InvalidNotationError):
+        notation.index_to_coord(-1)
+    for bad in ("D1", "A0", "A4", "A13", "1A", "AA", "A", ""):
+        with pytest.raises(InvalidNotationError):
+            notation.notation_to_index(bad)
+    with pytest.raises(InvalidNotationError):
+        notation.coord_to_index("D", 1)
+    with pytest.raises(InvalidNotationError):
+        notation.coord_to_index("A", 4)

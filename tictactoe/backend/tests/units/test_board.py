@@ -1,4 +1,5 @@
-from app.engine.board import board_from_string, board_to_string, winning_triples
+from app.engine.board import board_from_string, board_to_string
+
 
 def test_board_string_roundtrip():
     s = "XOX--O-X."
