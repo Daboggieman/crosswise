@@ -6,8 +6,10 @@ from pydantic import BaseModel, Field
 
 class CreateGameRequest(BaseModel):
     mode: Literal["hotseat", "vs_bot", "online"]
-    player_x_id: int
-    player_o_id: int
+    player_x_id: int | None = None
+    player_o_id: int | None = None
+    player_x_name: str | None = None
+    player_o_name: str | None = None
 
 
 class PlayMoveRequest(BaseModel):
