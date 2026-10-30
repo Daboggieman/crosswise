@@ -118,7 +118,6 @@ def get_game(game_id: str, settings: Settings = Depends(get_settings)):  # noqa:
     game = gameservice_get_game_service(settings, game_id)
     if game is None:
         raise GameNotFoundError(f"Game {game_id} not found.")
-    # sqlite3.Row objects must be converted to dicts for Pydantic.
     return {
         **_serialize_game(game),
         "moves": [MoveOut(**dict(m)) for m in game.get("moves", [])],
