@@ -9,7 +9,9 @@ from app.services.game_service import (
     GameNotFoundError,
     GameValidationError,
 )
-
+from app.services.player_service import (
+    PlayerValidationError
+)
 logger = logging.getLogger(__name__)
 
 
@@ -24,6 +26,18 @@ def install_error_handlers(app: FastAPI) -> None:
                 "code": "validation_error",
                 "message":"request validation failed",
                 "details": exc.errors(),
+            }
+        )
+    @app.exception_handler(PlayerValidationError)
+    async def handle_player_validation_error(
+        request: Request, exc: PlayerValidationError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code= 422,
+            content = {
+                "code":"validation_error",
+                "message": str(exc),
+                "details": None,
             }
         )
 

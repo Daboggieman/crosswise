@@ -21,12 +21,12 @@ def get_by_name(connection, display_name):
     }
 
 def create(connection, display_name, kind, now):
-    row = connection.execute(
+    cursor = connection.execute(
         """
         INSERT INTO players (
         display_name,
         kind,
-        now
+        created_at
         ) VALUES (?, ?, ?)
         """,
         (display_name,
@@ -34,4 +34,4 @@ def create(connection, display_name, kind, now):
         now.isoformat(),
         )
     )
-    return row.lastrowid
+    return cursor.lastrowid

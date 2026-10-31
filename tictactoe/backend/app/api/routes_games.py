@@ -16,6 +16,7 @@ from app.db.connection import connect
 from app.repositories.games import list_games as repo_list_games
 from app.services.game_service import (
     GameNotFoundError,
+    GameValidationError
 )
 from app.services.game_service import (
     create_game as gameservice_create_game,
@@ -26,10 +27,12 @@ from app.services.game_service import (
 from app.services.game_service import (
     play_move as gameservice_play_move,
 )
+from app.services.player_service import (
+    get_or_create_player
+)
 
 router = APIRouter(prefix="/games", tags=["games"])
 
-HUMAN_PLAYER_ID = 1
 EMPTY_CELL = ""
 _ENGINE_TO_API_STATUS ={
     "won": "finished",
@@ -71,14 +74,24 @@ def _serialize_summary(row):
 
 @router.post("", response_model=GameResponse, status_code=201)
 def create_game(body: CreateGameRequest, settings: Settings = Depends(get_settings)):  # noqa: B008
-    x_id = body.player_x_id if body.player_x_id is not None else HUMAN_PLAYER_ID
-    o_id = body.player_o_id if body.player_o_id is not None else HUMAN_PLAYER_ID
+    if body.player_x_id is not None:
+        x_id = body.player_x_id
+    elif body.player_x_name is not None and body.player_x_name.strip():
+        x_id = get_or_create_player(settings, body.player_x_name)
+    else:
+        raise GameValidationError("player_x_id or player_x_name is required.")
+
+    if body.player_o_id is not None:
+        o_id = body.player_o_id
+    elif body.player_o_name is not None and body.player_o_name.strip():
+        o_id = get_or_create_player(settings, body.player_o_name)
+    else:
+        raise GameValidationError("player_o_id or player_o_name is required.")
 
     game_id = gameservice_create_game(settings, body.mode, x_id, o_id)
     game = gameservice_get_game_service(settings, game_id)
-    
-    return _serialize_game(game)
 
+    return _serialize_game(game)
 
 @router.get("", response_model=GameListResponse)
 def list_games(

@@ -1,9 +1,8 @@
-from app.repositories.players import (
-    get_by_name as players_get_by_name,
-    create as players_create
-)
 from app.db.connection import transaction as connection_transaction
+from app.repositories.players import create as players_create
+from app.repositories.players import get_by_name as players_get_by_name
 from app.services.game_service import utc_now
+
 
 class PlayerValidationError(Exception):
     """raised when a player name is invalid"""
