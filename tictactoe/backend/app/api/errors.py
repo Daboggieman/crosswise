@@ -9,9 +9,8 @@ from app.services.game_service import (
     GameNotFoundError,
     GameValidationError,
 )
-from app.services.player_service import (
-    PlayerValidationError
-)
+from app.services.player_service import PlayerValidationError
+
 logger = logging.getLogger(__name__)
 
 

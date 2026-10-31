@@ -30,7 +30,7 @@ def create(connection, display_name, kind, now):
         ) VALUES (?, ?, ?)
         """,
         (display_name,
-        "Human",
+        kind,
         now.isoformat(),
         )
     )

@@ -9,6 +9,7 @@ class Settings:
     engine_version: str = "1"
     log_level: str = "INFO"
     allowed_origins: tuple[str, ...] = ("*",)
+    frontend_dir: str = "../frontend"
 
     @classmethod
     def load_settings(cls):
@@ -18,6 +19,7 @@ class Settings:
             engine_version=os.getenv("ENGINE_VERSION", "1"),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             allowed_origins=tuple(os.getenv("ALLOWED_ORIGINS", "*").split(",")),
+            frontend_dir=os.getenv("FRONTEND_DIR", "../frontend")
         )
 
 

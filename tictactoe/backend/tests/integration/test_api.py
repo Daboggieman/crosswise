@@ -5,6 +5,7 @@ path and its status code, pagination and filters, and that retried requests
 do not double-apply.
 """
 import os
+import sqlite3
 import sys
 import uuid
 from pathlib import Path
@@ -86,6 +87,90 @@ def test_create_game_bad_mode_returns_422():
         r = client.post("/api/v1/games", json={"mode": "invalid_mode", "player_x_id": 1, "player_o_id": 1})
         assert r.status_code == 422
         assert r.json()["code"] == "validation_error"
+    finally:
+        teardown_db(db)
+
+
+# ---------------------------------------------------------------------------
+# create game by player name (hotseat frontend path)
+# ---------------------------------------------------------------------------
+
+def test_create_game_with_player_names_returns_201():
+    client, db = get_client()
+    try:
+        r = client.post("/api/v1/games", json={"mode": "hotseat", "player_x_name": "Ada", "player_o_name": "Ben"})
+        assert r.status_code == 201
+        body = r.json()
+        assert body["game_id"] is not None
+        assert body["mode"] == "hotseat"
+        assert body["status"] == "in_progress"
+        assert body["board"] == ["", "", "", "", "", "", "", "", ""]
+        assert body["next_player"] == "X"
+    finally:
+        teardown_db(db)
+
+
+def test_create_game_with_names_persists_human_players():
+    client, db = get_client()
+    try:
+        r = client.post("/api/v1/games", json={"mode": "hotseat", "player_x_name": "Ada", "player_o_name": "Ben"})
+        assert r.status_code == 201
+        conn = sqlite3.connect(db)
+        try:
+            rows = conn.execute(
+                "SELECT display_name, kind FROM players WHERE display_name IN ('Ada', 'Ben')"
+            ).fetchall()
+        finally:
+            conn.close()
+        assert len(rows) == 2
+        assert {name: kind for name, kind in rows} == {"Ada": "human", "Ben": "human"}
+    finally:
+        teardown_db(db)
+
+
+def test_create_game_missing_player_fields_returns_422():
+    client, db = get_client()
+    try:
+        r = client.post("/api/v1/games", json={"mode": "hotseat"})
+        assert r.status_code == 422
+        assert r.json()["code"] == "validation_error"
+
+        r = client.post("/api/v1/games", json={"mode": "hotseat", "player_x_name": "Ada"})
+        assert r.status_code == 422
+        assert r.json()["code"] == "validation_error"
+    finally:
+        teardown_db(db)
+
+
+def test_create_game_blank_name_returns_422():
+    client, db = get_client()
+    try:
+        r = client.post("/api/v1/games", json={"mode": "hotseat", "player_x_name": "   ", "player_o_name": "Ben"})
+        assert r.status_code == 422
+        assert r.json()["code"] == "validation_error"
+    finally:
+        teardown_db(db)
+
+
+def test_create_game_id_takes_precedence_over_name():
+    client, db = get_client()
+    try:
+        r = client.post("/api/v1/games", json={
+            "mode": "hotseat", "player_x_id": 3, "player_x_name": "Ghost", "player_o_name": "Ben",
+        })
+        assert r.status_code == 201
+        conn = sqlite3.connect(db)
+        try:
+            game = conn.execute(
+                "SELECT player_x_id FROM games"
+            ).fetchone()
+            ghosts = conn.execute(
+                "SELECT COUNT(*) FROM players WHERE display_name = 'Ghost'"
+            ).fetchone()[0]
+        finally:
+            conn.close()
+        assert game[0] == 3
+        assert ghosts == 0
     finally:
         teardown_db(db)
 

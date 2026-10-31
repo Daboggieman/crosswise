@@ -14,10 +14,7 @@ from app.api.schemas import (
 from app.config import Settings, get_settings
 from app.db.connection import connect
 from app.repositories.games import list_games as repo_list_games
-from app.services.game_service import (
-    GameNotFoundError,
-    GameValidationError
-)
+from app.services.game_service import GameNotFoundError, GameValidationError
 from app.services.game_service import (
     create_game as gameservice_create_game,
 )
@@ -27,9 +24,7 @@ from app.services.game_service import (
 from app.services.game_service import (
     play_move as gameservice_play_move,
 )
-from app.services.player_service import (
-    get_or_create_player
-)
+from app.services.player_service import get_or_create_player
 
 router = APIRouter(prefix="/games", tags=["games"])
 
