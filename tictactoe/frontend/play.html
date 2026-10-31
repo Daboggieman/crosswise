@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    <title>Play — Crosswise</title>
+        <link rel="stylesheet" href="/static/css/style.css">
+    </head>
+    <body>
+        <main>
+            <h1>Tic Tac Toe</h1>
+            <section id="setup">
+                <form id="setup-form">
+                    <label for="player-x-name">Player X name</label>
+                    <input id="player-x-name" type="text" required maxlength="50">
+                    <label for="player-o-name">Player O name</label>
+                    <input id="player-o-name" type="text" required maxlength="50">
+                    <button type="submit" id="start-game">Start game</button>
+                </form>
+            </section>
+            <section id="game" hidden="hidden">
+                <p id="players-line">
+                    <span id="x-name"></span>
+                    <span id="o-name"></span>
+                </p>
+                <p id="turn-indicator" aria-live="polite"></p>
+                <p id="game-status" aria-live="polite"></p>
+                <div id="error-message" role="alert"></div>
+                <div id="board" role="group" aria-label="Tic Tac Toe board">
+                    <button type="button" data-cell="0" class="cell" aria-label="top-left"></button>
+                    <button type="button" data-cell="1" class="cell" aria-label="top-center"></button>
+                    <button type="button" data-cell="2" class="cell" aria-label="top-right"></button>
+                    <button type="button" data-cell="3" class="cell" aria-label="middle-left"></button>
+                    <button type="button" data-cell="4" class="cell" aria-label="middle-center"></button>
+                    <button type="button" data-cell="5" class="cell" aria-label="middle-right"></button>
+                    <button type="button" data-cell="6" class="cell" aria-label="bottom-left"></button>
+                    <button type="button" data-cell="7" class="cell" aria-label="bottom-center"></button>
+                    <button type="button" data-cell="8" class="cell" aria-label="bottom-right"></button>
+                </div>
+                <div id="game-controls">
+                    <button id="new-game" type="button"> NEW GAME</button>
+                    <button id="resign" type="button" disabled title="will be available in phase 5"> RESIGN </button>
+                    <button id="offer-draw" type="button" disabled title="will be available in phase 5">OFFER DRAW</button>
+                </div>
+            </section>
+        </main>
+        <script type="module" src="/static/js/game-controller.js"></script>
+    </body>
+</html>

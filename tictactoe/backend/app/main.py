@@ -1,8 +1,10 @@
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 from app.api.errors import install_error_handlers
 from app.api.routes_games import router as games_router
 from app.api.routes_pages import router as pages_router
@@ -25,6 +27,12 @@ def create_app() -> FastAPI:
 
     install_error_handlers(app)
     app.include_router(games_router, prefix="/api/v1")
+    app.mount(
+        "/static",
+        StaticFiles(directory=Path(settings.frontend_dir) / "static"),
+        name="static",
+    )
+    app.include_router(pages_router)
 
     @app.get("/api/v1/health")
     async def health():
