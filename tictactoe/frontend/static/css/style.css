@@ -1,0 +1,62 @@
+:root {
+  /* Colors */
+  --color-bg: #f8fafc;
+  --color-ink: #111827;
+  --color-muted: #6b7280;
+  --color-accent: #6366f1;
+  --color-x: #2563eb;
+  --color-o: #f97316;
+  --color-win: #e0e7ff;
+  --color-error: #dc2626;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+
+  /* Border radius */
+  --radius: 8px;
+}
+/*page reset and body*/
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    background:var(--color-bg);
+    color:var(--color-ink);
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+main{
+    max-width: 30rem;
+    margin: 0 auto;
+    padding: var(--space-3);
+}
+#setup-form{
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+#setup-form input{
+    padding:10px;
+    border: 1px solid var(--color-muted);
+    border-radius: var(--radius);
+    font-size: 1rem;
+}
+
+#setup-form button, #game-controls button {
+    padding: var(--space-2);
+    border: 1px solid var(--color-muted);
+    border-radius: var(--radius);
+    background: var(--color-accent);
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* continue section 6 */
