@@ -8,16 +8,12 @@
   --color-o: #f97316;
   --color-win: #e0e7ff;
   --color-error: #dc2626;
-
-  /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;
-
-  /* Border radius */
   --radius: 8px;
+  --color-cell:beige;
 }
-/*page reset and body*/
 * {
     box-sizing: border-box;
     margin: 0;
@@ -49,7 +45,8 @@ main{
     font-size: 1rem;
 }
 
-#setup-form button, #game-controls button {
+#setup-form button, 
+#game-controls button {
     padding: var(--space-2);
     border: 1px solid var(--color-muted);
     border-radius: var(--radius);
@@ -59,4 +56,58 @@ main{
     cursor: pointer;
 }
 
-/* continue section 6 */
+#setup-form button:focus-visible,
+#game-controls button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+#board {
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+}
+
+.cell {
+    aspect-ratio: 1 / 1;
+    font-size: 2rem;
+    border: 1px solid var(--color-muted);
+    border-radius: var(--radius);
+    background: var(--color-cell);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.cell:disabled {
+    cursor: not-allowed;
+    background: var(--color-muted);
+}
+
+.cell:focus-visible{
+    outline: 2px solid var(--color-accent);
+    outline-offset:2px;
+}
+.cell.win{
+    background: var(--color-win);
+}
+.cell.x{
+    color: var(--color-x);
+}
+.cell.o{
+    color: var(--color-o);
+}
+#players-line,
+#turn-indicator,
+#game-status {
+    color: var(--color-ink);
+    min-height: 1.5rem;
+}
+#error-message {
+    color:var(--color-error);
+    min-height:1.5em;
+}
+#game-controls{
+    display: flex;
+    gap: var(--space-2);
+}
